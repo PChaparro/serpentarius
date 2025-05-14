@@ -1,0 +1,17 @@
+# General config
+branch_whitelist = ["development"]
+skip_ci = "[skip ci]"               # Add skip ci to the commit message to prevent an infinite loop
+ignore_merge_commits = true
+tag_prefix = "v"
+
+post_bump_hooks = [
+    "git push origin",
+    "git push origin --tags"
+]
+
+# Changelog config
+[changelog]
+template = "remote"
+remote = "github.com"
+repository = "serpentarius"
+owner = "PChaparro"
