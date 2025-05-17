@@ -1,0 +1,46 @@
+meta {
+  name: generate-returning-url
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{BASE_URL}}/pdf/url
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "bodyHTML": "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Document</title><style>.card{width:200px;height:200px;background-color:#663399;display:flex;justify-content:center;align-items:center;border:1px solid #000}</style></head><body><div class=\"card\">Hi</div></body></html>",
+        "config": {
+          "orientation": "portrait",
+          "displayHeaderFooter": true,
+          "printBackground": true,
+          "scale": 1,
+          "size": "a4",
+          "margin": {
+            "top": 1,
+            "bottom": 1,
+            "right": 1,
+            "left": 1
+          },
+          "pageRanges": {
+            "start": 1,
+            "end": 2
+          },
+          "headerHTML": "<span style='font-size:10px;'>Header</span>",
+          "footerHTML": "<span style='font-size:10px;'>Footer</span>"
+        }
+      }
+    ],
+    "config": {
+      "directory": "serpentarius",
+      "fileName": "sales-report.pdf",
+      "publicURLPrefix": "http://localhost:9000",
+      "expiration": 0
+    }
+  }
+}
