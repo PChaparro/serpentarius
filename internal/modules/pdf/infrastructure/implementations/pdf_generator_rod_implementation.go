@@ -283,6 +283,7 @@ func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePri
 }
 
 // mergePDFs receives multiple io.Reader and returns a single combined PDF as io.Reader
+// Uses go routines to process PDF files in parallel while preserving the original order
 func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 	// Create slices for temporary files
 	tempFilesNames := make([]string, len(readers))
@@ -298,32 +299,65 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 		}
 	}()
 
-	// Save each reader as a temporary file
+	// Create wait group to wait for all files to be processed
+	var wg sync.WaitGroup
+	var mu sync.Mutex // Mutex to protect access to shared resources
+	var processingErr error
+
+	// Process each reader in parallel
 	for readerIndex, currentReader := range readers {
-		// Create an unique identifier for the temporary file
-		tempFileRandomId := sharedInfrastructure.GenerateXID()
+		wg.Add(1)
 
-		// Create a temporary file for each PDF
-		tempFileName := filepath.Join(
-			tempDir,
-			fmt.Sprintf("temp_%s.pdf", tempFileRandomId),
-		)
-		tempFile, err := os.Create(tempFileName)
-		if err != nil {
-			return nil, fmt.Errorf("error creating temporary file: %w", err)
-		}
-		defer func() {
-			if err := os.Remove(tempFileName); err != nil {
-				sharedInfrastructure.GetLogger().WithError(err).Error("error removing temporary file")
+		// Use goroutine to process readers concurrently
+		go func(idx int, reader io.Reader) {
+			defer wg.Done()
+
+			// Create an unique identifier for the temporary file
+			tempFileRandomId := sharedInfrastructure.GenerateXID()
+
+			// Create a temporary file for this PDF
+			tempFileName := filepath.Join(
+				tempDir,
+				fmt.Sprintf("temp_%s.pdf", tempFileRandomId),
+			)
+
+			// Create the file
+			tempFile, err := os.Create(tempFileName)
+			if err != nil {
+				mu.Lock()
+				if processingErr == nil {
+					processingErr = fmt.Errorf("error creating temporary file: %w", err)
+				}
+				mu.Unlock()
+				return
 			}
-		}()
 
-		_, err = io.Copy(tempFile, currentReader)
-		if err != nil {
-			return nil, fmt.Errorf("error writing to temporary file: %w", err)
-		}
+			// Copy reader content to the file
+			_, err = io.Copy(tempFile, reader)
+			tempFile.Close() // Close the file after writing
 
-		tempFilesNames[readerIndex] = tempFileName
+			if err != nil {
+				mu.Lock()
+				if processingErr == nil {
+					processingErr = fmt.Errorf("error writing to temporary file: %w", err)
+				}
+				mu.Unlock()
+				return
+			}
+
+			// Store the filename at the correct index to maintain order
+			mu.Lock()
+			tempFilesNames[idx] = tempFileName
+			mu.Unlock()
+		}(readerIndex, currentReader)
+	}
+
+	// Wait for all files to be processed
+	wg.Wait()
+
+	// Check if an error occurred during processing
+	if processingErr != nil {
+		return nil, processingErr
 	}
 
 	// Create an unique identifier for the merged file
