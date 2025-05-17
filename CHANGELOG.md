@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.2.0](https://github.com/PChaparro/serpentarius/compare/3fab028dbe6727cd94bdaa2f66a2d69af721c755..v0.2.0) - 2025-05-17
+#### Features
+- **(pdf)** implement caching (#2) - ([3fab028](https://github.com/PChaparro/serpentarius/commit/3fab028dbe6727cd94bdaa2f66a2d69af721c755)) - Pedro Chaparro
+
+- - -
+
 ## [v0.1.0](https://github.com/PChaparro/serpentarius/compare/276a5fb3354da77bf4ce7703ef3bebf2dc2d5270..v0.1.0) - 2025-05-17
 #### Features
 - **(pdf)** generate PDF returning URL (#1) - ([c7777ac](https://github.com/PChaparro/serpentarius/commit/c7777ac1c754e7f110fcc1872c6e62acba98ec34)) - Pedro Chaparro
