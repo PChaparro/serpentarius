@@ -39,7 +39,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 			default:
 				c.JSON(500, gin.H{
 					"message": "There was an error processing your request",
-					"error":   e.Error(),
+					// "error":   e.Error(),
 				})
 			}
 		}
