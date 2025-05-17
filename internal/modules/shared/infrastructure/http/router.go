@@ -13,6 +13,7 @@ var moduleRegistries = []RouterRegistry{
 	&pdfHttp.PDFRouter{}, // PDF module routes
 }
 
+// RouterRegistry registers routes of all modules
 func RegisterRoutes() {
 	router := gin.Default()
 

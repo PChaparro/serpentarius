@@ -12,7 +12,8 @@ var domainErrorCodeToHTTPStatusCode = map[string]int{
 	"ERROR": http.StatusInternalServerError,
 }
 
-// ErrorHandlerMiddleware catches unhandled panics in the HTTP handlers and returns a 500 error response
+// ErrorHandlerMiddleware is a Gin middleware that handles errors returned by the application
+// and sends appropriate HTTP responses to the client.
 func ErrorHandlerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()

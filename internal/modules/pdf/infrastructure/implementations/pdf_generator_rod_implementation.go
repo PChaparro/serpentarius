@@ -155,7 +155,8 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 }
 
 // GeneratePDF generates a PDF based on the provided request.
-// It returns the generated PDF as a byte slice and an error if any occurred.
+// It creates a new browser instance, generates individual PDFs for each item in the request,
+// and merges them into a single PDF file.
 func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader, error) {
 	// Create a new browser instance
 	browser := rod.New().MustConnect()

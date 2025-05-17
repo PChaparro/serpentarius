@@ -9,6 +9,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+// EnvironmentSpec holds the configuration for the application environment.
 type EnvironmentSpec struct {
 	// AWS S3
 	AwsS3EndpointURL   string `split_words:"true" default:"https://s3.amazonaws.com"`
@@ -22,6 +23,7 @@ var (
 	environmentOnce sync.Once
 )
 
+// GetEnvironment returns a singleton instance of the EnvironmentSpec.
 func GetEnvironment() *EnvironmentSpec {
 	environmentOnce.Do(func() {
 		loadFromEnvFile()
@@ -31,6 +33,7 @@ func GetEnvironment() *EnvironmentSpec {
 	return environment
 }
 
+// loadFromEnvFile loads environment variables from a .env file if not in production.
 func loadFromEnvFile() {
 	execEnvironment := os.Getenv("ENVIRONMENT")
 
@@ -42,6 +45,7 @@ func loadFromEnvFile() {
 	}
 }
 
+// initializeEnvironmentInstance initializes the EnvironmentSpec instance with environment variables.
 func initializeEnvironmentInstance() {
 	environment = &EnvironmentSpec{}
 

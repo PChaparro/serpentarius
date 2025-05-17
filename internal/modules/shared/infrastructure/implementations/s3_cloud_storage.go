@@ -15,6 +15,7 @@ import (
 	"github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 )
 
+// S3CloudStorage implements the CloudStorage interface for AWS S3
 type S3CloudStorage struct {
 	client *s3.Client
 }
