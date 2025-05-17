@@ -18,6 +18,12 @@ type EnvironmentSpec struct {
 	AwsAccessKeyID     string `required:"true" split_words:"true"`
 	AwsSecretAccessKey string `required:"true" split_words:"true"`
 	AwsRegion          string `split_words:"true" default:"us-east-1"`
+
+	// Redis
+	RedisHost     string `split_words:"true" default:"localhost"`
+	RedisPort     string `split_words:"true" default:"6379"`
+	RedisPassword string `split_words:"true" default:""`
+	RedisDB       int    `split_words:"true" default:"0"`
 }
 
 var (
