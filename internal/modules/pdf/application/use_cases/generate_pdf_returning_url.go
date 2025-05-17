@@ -89,7 +89,7 @@ func (u *GeneratePDFReturningURLUseCase) Execute(
 	}
 
 	// Cache the URL with the generated hash as the key
-	cacheRequest := sharedDefinitions.SetLUrlCacheRequest{
+	cacheRequest := sharedDefinitions.SetURLCacheRequest{
 		Key:        hash,
 		Value:      url,
 		Expiration: *request.Config.Expiration,

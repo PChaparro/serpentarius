@@ -62,7 +62,9 @@ func (f *NativeFetcher) Get(request definitions.GetRequest) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error executing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Check if the response status is successful (2xx)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

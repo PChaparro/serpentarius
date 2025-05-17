@@ -62,7 +62,7 @@ func createRedisClient() *redis.Client {
 }
 
 // Set stores a key-value pair in the Redis cache with an optional expiration time
-func (r *RedisCacheStorage) Set(request definitions.SetLUrlCacheRequest) error {
+func (r *RedisCacheStorage) Set(request definitions.SetURLCacheRequest) error {
 	ctx := context.Background()
 
 	// Set expiration time if provided
