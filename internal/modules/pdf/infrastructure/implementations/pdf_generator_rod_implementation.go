@@ -10,6 +10,7 @@ import (
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	sharedInfrastructure "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 	pdfProcessingAPI "github.com/pdfcpu/pdfcpu/pkg/api"
 	pdfProcessingModel "github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
@@ -166,7 +167,15 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 // and merges them into a single PDF file.
 func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader, error) {
 	// Create a new browser instance
-	browser := rod.New().MustConnect()
+	launcherURL := launcher.New().
+		Headless(true).                    // Run without a GUI
+		Leakless(true).                    // Prevent memory leaks
+		Set("disable-gpu", "1").           // Disable GPU acceleration
+		Set("disable-dev-shm-usage", "1"). // Disable /dev/shm usage
+		Set("disable-extensions", "1").    // Disable extensions
+		MustLaunch()
+
+	browser := rod.New().ControlURL(launcherURL).MustConnect()
 	defer browser.MustClose()
 
 	// Create a PDF files slice to merge later
