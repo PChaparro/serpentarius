@@ -41,9 +41,10 @@ type PDFItem struct {
 
 // GeneralConfig represents the general PDF configuration
 type GeneralConfig struct {
-	Directory  string // Required field
-	FileName   string // Required field
-	Expiration *int64
+	Directory       string // Required field
+	FileName        string // Required field
+	PublicURLPrefix string
+	Expiration      *int64
 }
 
 // PDFGenerationDTO represents the complete PDF generation request

@@ -2,18 +2,18 @@ package use_cases
 
 import (
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/definitions"
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
+	sharedDefinitions "github.com/PChaparro/serpentarius/internal/modules/shared/domain/definitions"
 )
 
 // GeneratePDFReturningURLUseCase is the use case for generating a PDF and returning its public URL.
 type GeneratePDFReturningURLUseCase struct {
 	// PDFGenerator is the interface for generating PDFs
 	PDFGenerator definitions.PDFGenerator
+	// CloudStorage is the interface for cloud storage operations
+	CloudStorage sharedDefinitions.CloudStorage
 }
 
 // Execute generates a PDF based on the provided request and returns the URL of the generated PDF.
@@ -26,27 +26,19 @@ func (u *GeneratePDFReturningURLUseCase) Execute(
 		return "", err
 	}
 
-	// Just use the filename from the request
-	fileName := request.Config.FileName
-
-	// Create the local file
-	file, err := os.Create(fileName)
+	// Upload the PDF to cloud storage
+	uploadRequest := sharedDefinitions.UploadFileRequest{
+		FileReader:      pdfReader,
+		FileFolder:      request.Config.Directory,
+		FilePath:        request.Config.FileName,
+		ContentType:     "application/pdf",
+		PublicURLPrefix: request.Config.PublicURLPrefix,
+	}
+	url, err := u.CloudStorage.UploadFile(uploadRequest)
 	if err != nil {
-		return "", fmt.Errorf("error creating file: %w", err)
-	}
-	defer file.Close()
-
-	// Copy the PDF content to the file
-	if _, err := io.Copy(file, pdfReader); err != nil {
-		return "", fmt.Errorf("error writing to file: %w", err)
+		return "", fmt.Errorf("error uploading file to cloud storage: %w", err)
 	}
 
-	// Return the absolute path to the file as a URL for now
-	absPath, err := filepath.Abs(fileName)
-	if err != nil {
-		return fileName, nil // Return the filename if absolute path fails
-	}
-
-	// Return file:// URL for local testing
-	return "file://" + absPath, nil
+	// Return the public URL of the uploaded PDF
+	return url, nil
 }

@@ -40,9 +40,10 @@ type PDFItem struct {
 
 // GeneralConfig represents the general PDF configuration
 type GeneralConfig struct {
-	Directory  string `json:"directory" validate:"required"`
-	FileName   string `json:"fileName" validate:"required"`
-	Expiration *int64 `json:"expiration,omitempty" validate:"omitempty,min=0"` // Expiration time in seconds
+	Directory       string `json:"directory" validate:"required"`
+	FileName        string `json:"fileName" validate:"required"`
+	PublicURLPrefix string `json:"publicURLPrefix,omitempty" validate:"required,url"`
+	Expiration      *int64 `json:"expiration,omitempty" validate:"omitempty,min=0"` // Expiration time in seconds
 }
 
 // GeneratePDFReturningURLRequest represents the complete PDF generation request
@@ -102,9 +103,10 @@ func getPageSizeFromString(size string) *dto.PageSize {
 // ToDTO converts the request to a PDFGenerationDTO that can be used by the use case
 func (r *GeneratePDFReturningURLRequest) ToDTO() *dto.PDFGenerationDTO {
 	config := dto.GeneralConfig{
-		Directory:  r.Config.Directory,
-		FileName:   r.Config.FileName,
-		Expiration: r.Config.Expiration,
+		Directory:       r.Config.Directory,
+		FileName:        r.Config.FileName,
+		PublicURLPrefix: r.Config.PublicURLPrefix,
+		Expiration:      r.Config.Expiration,
 	}
 
 	items := make([]dto.PDFItem, len(r.Items))

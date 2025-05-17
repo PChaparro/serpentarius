@@ -6,6 +6,7 @@ import (
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/http/requests"
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/implementations"
 	sharedMiddlewares "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure/http/middlewares"
+	sharedImplementations "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure/implementations"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +21,7 @@ func (pr *PDFRouter) RegisterRoutes(r *gin.RouterGroup) {
 	// Generate PDF and return URL
 	generatePDFReturningURLUseCase := use_cases.GeneratePDFReturningURLUseCase{
 		PDFGenerator: &implementations.PDFGeneratorRod{},
+		CloudStorage: sharedImplementations.GetS3CloudStorage(),
 	}
 	generatePDFReturningURLController := &controllers.GeneratePDFReturningURLController{
 		UseCase: generatePDFReturningURLUseCase,
