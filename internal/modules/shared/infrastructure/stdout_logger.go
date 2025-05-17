@@ -20,9 +20,18 @@ var (
 // GetLogger returns the singleton instance of Logger
 func GetLogger() *Logger {
 	once.Do(func() {
+		// Set the log level based on the environment variable
+		var logLevel zapcore.Level
+
+		if GetEnvironment().Environment == "production" {
+			logLevel = zapcore.InfoLevel
+		} else {
+			logLevel = zapcore.DebugLevel
+		}
+
 		// Configure zap logger
 		config := zap.Config{
-			Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+			Level:       zap.NewAtomicLevelAt(logLevel),
 			Development: false,
 			Sampling: &zap.SamplingConfig{
 				Initial:    100,

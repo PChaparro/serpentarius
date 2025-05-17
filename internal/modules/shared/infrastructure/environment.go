@@ -11,6 +11,8 @@ import (
 
 // EnvironmentSpec holds the configuration for the application environment.
 type EnvironmentSpec struct {
+	Environment string `split_words:"true" default:"development"`
+
 	// AWS S3
 	AwsS3EndpointURL   string `split_words:"true" default:"https://s3.amazonaws.com"`
 	AwsAccessKeyID     string `required:"true" split_words:"true"`

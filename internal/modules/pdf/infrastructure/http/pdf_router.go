@@ -20,7 +20,7 @@ func (pr *PDFRouter) RegisterRoutes(r *gin.RouterGroup) {
 
 	// Generate PDF and return URL
 	generatePDFReturningURLUseCase := use_cases.GeneratePDFReturningURLUseCase{
-		PDFGenerator: &implementations.PDFGeneratorRod{},
+		PDFGenerator: implementations.GetPDFGeneratorRod(),
 		CloudStorage: sharedImplementations.GetS3CloudStorage(),
 	}
 	generatePDFReturningURLController := &controllers.GeneratePDFReturningURLController{
