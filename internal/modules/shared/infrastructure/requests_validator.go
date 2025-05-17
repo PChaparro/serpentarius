@@ -8,12 +8,12 @@ import (
 
 var (
 	validatorInstance *validator.Validate
-	once              sync.Once
+	validatorOnce     sync.Once
 )
 
 // GetValidatorInstance returns a singleton instance of the validator
 func GetValidatorInstance() *validator.Validate {
-	once.Do(func() {
+	validatorOnce.Do(func() {
 		validatorInstance = validator.New(validator.WithRequiredStructEnabled())
 	})
 	return validatorInstance
@@ -34,6 +34,8 @@ func GetUserFriendlyValidationErrorMessage(err validator.FieldError) string {
 		return "Value must be greater than or equal to " + err.Param() + " field"
 	case "filename":
 		return "Must be a valid file name"
+	case "url":
+		return "Must be a valid URL"
 	default:
 		return "Invalid value"
 	}
