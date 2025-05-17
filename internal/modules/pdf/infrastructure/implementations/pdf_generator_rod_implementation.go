@@ -334,7 +334,7 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 
 			// Copy reader content to the file
 			_, err = io.Copy(tempFile, reader)
-			tempFile.Close() // Close the file after writing
+			_ = tempFile.Close() // Close the file after writing
 
 			if err != nil {
 				mu.Lock()
