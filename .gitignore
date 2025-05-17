@@ -29,3 +29,7 @@ tmp/
 
 # Docker volumes
 volumes/
+
+# Editor files
+/.idea/
+/.vscode/
