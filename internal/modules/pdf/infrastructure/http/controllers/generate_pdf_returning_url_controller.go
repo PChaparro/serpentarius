@@ -25,7 +25,7 @@ func (controller *GeneratePDFReturningURLController) Handle(c *gin.Context) {
 	// Call the use case
 	url, err := controller.UseCase.Execute(dto)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		return
 	}
 

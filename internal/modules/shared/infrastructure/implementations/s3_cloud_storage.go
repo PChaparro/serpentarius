@@ -40,25 +40,9 @@ func GetS3CloudStorage() definitions.CloudStorage {
 func createS3Client() *s3.Client {
 	env := infrastructure.GetEnvironment()
 
-	// Create custom endpoint resolver if custom endpoint URL is provided
-	var endpointResolver aws.EndpointResolverWithOptionsFunc
-	if env.AwsS3EndpointURL != "" {
-		endpointResolver = func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-			if service == s3.ServiceID {
-				return aws.Endpoint{
-					URL:               env.AwsS3EndpointURL,
-					HostnameImmutable: true,
-					SigningRegion:     env.AwsRegion,
-				}, nil
-			}
-			// Fallback to default resolver for other services
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-		}
-	}
-
+	// Load the AWS SDK config
 	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion(env.AwsRegion),
-		config.WithEndpointResolverWithOptions(endpointResolver),
 		config.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
 			return aws.Credentials{
 				AccessKeyID:     env.AwsAccessKeyID,
@@ -70,7 +54,15 @@ func createS3Client() *s3.Client {
 		panic("Unable to load AWS SDK config: " + err.Error())
 	}
 
-	return s3.NewFromConfig(cfg)
+	// Set S3 options for custom endpoint
+	s3Options := func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(env.AwsS3EndpointURL)
+		o.UsePathStyle = true
+	}
+
+	// Create the S3 client
+	client := s3.NewFromConfig(cfg, s3Options)
+	return client
 }
 
 // UploadFile uploads a file to S3 and returns the URL

@@ -15,6 +15,7 @@ require (
 	github.com/pdfcpu/pdfcpu v0.10.2
 	github.com/rs/xid v1.6.0
 	github.com/ysmood/gson v0.7.3
+	go.uber.org/zap v1.27.0
 )
 
 require (
@@ -59,6 +60,7 @@ require (
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.17.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/image v0.26.0 // indirect

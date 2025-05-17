@@ -98,7 +98,11 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating temporary directory: %w", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil {
+			sharedInfrastructure.GetLogger().WithError(err).Error("error removing temporary directory")
+		}
+	}()
 
 	// Save each reader as a temporary file
 	for readerIndex, currentReader := range readers {
@@ -114,14 +118,17 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error creating temporary file: %w", err)
 		}
+		defer func() {
+			if err := os.Remove(tempFileName); err != nil {
+				sharedInfrastructure.GetLogger().WithError(err).Error("error removing temporary file")
+			}
+		}()
 
 		_, err = io.Copy(tempFile, currentReader)
 		if err != nil {
-			tempFile.Close()
 			return nil, fmt.Errorf("error writing to temporary file: %w", err)
 		}
 
-		tempFile.Close()
 		tempFilesNames[readerIndex] = tempFileName
 	}
 
@@ -172,10 +179,15 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 
 		// Create a new page
 		page := browser.MustPage()
-		defer page.Close()
+		defer page.MustClose()
 
 		// Set HTML content of the page
-		page.SetDocumentContent(item.BodyHTML)
+		err := page.SetDocumentContent(item.BodyHTML)
+		if err != nil {
+			return nil, fmt.Errorf("error setting document content: %w", err)
+		}
+
+		// Wait for the page to load
 		page.MustWaitLoad().MustWaitIdle()
 
 		// Generate PDF
