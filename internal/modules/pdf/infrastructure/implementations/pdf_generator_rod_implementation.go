@@ -1,3 +1,6 @@
+// Package implementations provides concrete implementations of the PDF generation interfaces.
+// This file contains the Rod-based PDF generator implementation which uses the Rod library
+// to control headless Chrome browsers for PDF generation.
 package implementations
 
 import (
@@ -18,48 +21,47 @@ import (
 	pdfProcessingModel "github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-// Pool configuration constants
-const (
-	// MaxBrowsers is the maximum number of browser instances to maintain in the pool
-	MaxBrowsers = 4
+// Variables defining the resource limits for the browser pool
+var (
+	// MaxBrowsers defines the maximum number of browser instances to create
+	MaxBrowsers = sharedInfrastructure.GetEnvironment().MaxChromiumBrowsers
 
-	// MaxPagesPerBrowser is the maximum number of pages per browser to maintain in the pool
-	MaxPagesPerBrowser = 8
+	// MaxPagesPerBrowser defines the maximum number of pages per browser instance
+	MaxPagesPerBrowser = sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
 )
 
-// PagePool holds and manages a pool of browser pages
-type PagePool struct {
-	pages chan *rod.Page
-	mu    sync.Mutex
+// PageWithBrowser associates a Rod Page with its parent Browser instance.
+// This structure is used in the page pool to track which page belongs to which browser.
+type PageWithBrowser struct {
+	Page    *rod.Page    // The browser page instance for rendering content
+	Browser *rod.Browser // The parent browser instance that owns this page
 }
 
-// Browser represents a browser instance in the pool
-type Browser struct {
-	instance *rod.Browser
-	pagePool *PagePool
-}
-
-// PDFGeneratorRod implements the PDFGenerator interface using Rod
+// PDFGeneratorRod implements PDF generation functionality using the Rod library
+// to control headless Chrome browsers. It maintains a pool of browser instances and pages
+// to optimize resource usage and improve performance with concurrent PDF generation tasks.
 type PDFGeneratorRod struct {
-	// browserPool holds available browsers
-	browserPool chan *Browser
-	// mutex protects concurrent access to the browserPool
-	mutex sync.Mutex
-	// initialized indicates if the browser pool has been initialized
-	initialized bool
+	pagePool    chan *PageWithBrowser // Pool of available browser pages for PDF generation
+	mutex       sync.Mutex            // Mutex to protect concurrent access to the generator state
+	initialized bool                  // Flag indicating if the generator has been initialized
+	browsers    []*rod.Browser        // List of browser instances managed by this generator
 }
 
-// pdfGeneratorInstance is the singleton instance of PDFGeneratorRod
+// Global singleton instance and initialization control
 var pdfGeneratorInstance *PDFGeneratorRod
 var pdfGeneratorOnce sync.Once
 
-// GetPDFGeneratorRod returns the singleton instance of PDFGeneratorRod
+// GetPDFGeneratorRod returns the singleton instance of the PDF generator.
+// It initializes the generator on the first call and sets up a finalizer
+// to ensure resources are properly released when the generator is garbage collected.
+// This follows the singleton pattern to ensure there's only one instance
+// managing the browser pool across the application.
 func GetPDFGeneratorRod() *PDFGeneratorRod {
 	pdfGeneratorOnce.Do(func() {
 		pdfGeneratorInstance = &PDFGeneratorRod{}
 		pdfGeneratorInstance.Initialize()
 
-		// Set up cleanup on program exit
+		// Set up a finalizer to clean up resources when the generator is garbage collected
 		runtime.SetFinalizer(pdfGeneratorInstance, func(p *PDFGeneratorRod) {
 			p.ReleaseBrowserPool()
 		})
@@ -68,180 +70,130 @@ func GetPDFGeneratorRod() *PDFGeneratorRod {
 	return pdfGeneratorInstance
 }
 
-// NewPagePool creates a new page pool with specified capacity
-func NewPagePool(size int) *PagePool {
-	return &PagePool{
-		pages: make(chan *rod.Page, size),
-	}
-}
-
-// Initialize sets up the browser pool for PDF generation
+// Initialize sets up the browser pool and page pool for PDF generation.
+// It creates multiple browser instances and initializes pages for each browser,
+// adding them to the page pool for future use. This method is thread-safe
+// and will only initialize the generator once, regardless of how many times it's called.
 func (p *PDFGeneratorRod) Initialize() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	// Skip initialization if already done
 	if p.initialized {
 		return
 	}
 
-	// Determine number of browsers based on GOMAXPROCS but cap at MaxBrowsers
+	// Determine the optimal number of browsers based on system resources,
+	// but never exceed the defined maximum
 	numBrowsers := min(runtime.GOMAXPROCS(0), MaxBrowsers)
 
-	// Create the browser pool
-	p.browserPool = make(chan *Browser, numBrowsers)
+	// Create the page pool channel with capacity for all pages across all browsers
+	p.pagePool = make(chan *PageWithBrowser, numBrowsers*MaxPagesPerBrowser)
 
-	// Initialize the browser pool
-	for range numBrowsers {
-		// Launch a new browser
+	// Create and configure each browser instance
+	for i := 0; i < numBrowsers; i++ {
+		// Launch a new browser instance with optimized settings for headless PDF generation
 		launcherURL := launcher.New().
-			Bin(sharedInfrastructure.GetEnvironment().ChromiumBinaryPath).
-			Headless(true).                    // Run without a GUI
-			Leakless(true).                    // Prevent memory leaks
-			Set("disable-gpu", "1").           // Disable GPU acceleration
-			Set("disable-dev-shm-usage", "1"). // Disable /dev/shm usage
-			Set("disable-extensions", "1").    // Disable extensions
+			Bin(sharedInfrastructure.GetEnvironment().ChromiumBinaryPath). // Use the configured Chromium binary
+			Headless(true).                                                // Run in headless mode (no UI)
+			Leakless(true).                                                // Ensure process cleanup on unexpected termination
+			Set("disable-gpu", "1").                                       // Disable GPU acceleration
+			Set("disable-dev-shm-usage", "1").                             // Avoid using shared memory
+			Set("disable-extensions", "1").                                // Disable browser extensions
 			MustLaunch()
 
+		// Connect to the launched browser
 		browser := rod.New().ControlURL(launcherURL).MustConnect()
+		p.browsers = append(p.browsers, browser)
 
-		// Create a page pool for this browser
-		pagePool := NewPagePool(MaxPagesPerBrowser)
-
-		// Add browser to pool
-		p.browserPool <- &Browser{
-			instance: browser,
-			pagePool: pagePool,
+		// Create pages for this browser and add them to the page pool
+		for j := 0; j < MaxPagesPerBrowser; j++ {
+			page := browser.MustIncognito().MustPage() // Use incognito for isolation
+			p.pagePool <- &PageWithBrowser{Page: page, Browser: browser}
 		}
 	}
 
 	p.initialized = true
 
-	// Log initialization
+	// Log initialization details
 	sharedInfrastructure.GetLogger().
 		WithField("browsers", numBrowsers).
-		WithField("pages_per_browser", MaxPagesPerBrowser).
-		Info("PDF generator browser pool initialized")
+		WithField("pages_total", numBrowsers*MaxPagesPerBrowser).
+		Info("PDF generator page pool initialized")
 }
 
-// getBrowser gets a browser from the pool or waits if none are available
-func (p *PDFGeneratorRod) getBrowser() *Browser {
-	return <-p.browserPool
+// RequestPage retrieves an available page from the page pool.
+// This method will block until a page becomes available if all pages are currently in use.
+// The caller is responsible for returning the page to the pool after use.
+func (p *PDFGeneratorRod) RequestPage() *PageWithBrowser {
+	return <-p.pagePool
 }
 
-// returnBrowser returns a browser to the pool
-func (p *PDFGeneratorRod) returnBrowser(browser *Browser) {
-	p.browserPool <- browser
-	sharedInfrastructure.GetLogger().Debug("Browser freed up")
+// ReturnPage returns a previously requested page back to the page pool,
+// making it available for future use by other operations.
+// This should be called after a page is no longer needed to prevent resource leaks.
+func (p *PDFGeneratorRod) ReturnPage(pwb *PageWithBrowser) {
+	p.pagePool <- pwb
 }
 
-// ReleaseBrowserPool frees up resources used by the browser pool
+// ReleaseBrowserPool cleans up all browser resources managed by this generator.
+// It closes all browser instances and releases associated resources.
+// This method is thread-safe and idempotent, so it's safe to call multiple times.
 func (p *PDFGeneratorRod) ReleaseBrowserPool() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	// Skip if not initialized
 	if !p.initialized {
 		return
 	}
 
-	// Close browser pool channel
-	close(p.browserPool)
+	// Close the page pool channel to prevent further page requests
+	close(p.pagePool)
 
-	// Close all browsers and their page pools
-	browserIndex := 0
-	for browser := range p.browserPool {
-		// Clean up page pool
-		browser.pagePool.ReleasePagePool(func(page *rod.Page) {
-			page.MustClose()
-		})
-		sharedInfrastructure.GetLogger().
-			WithField("browser_index", browserIndex).
-			Debug("Browser page pool cleaned up")
-
-		// Close browser
-		browser.instance.MustClose()
-		sharedInfrastructure.GetLogger().
-			WithField("browser_index", browserIndex).
-			Debug("Browser instance closed")
-
-		browserIndex++
+	// Close each browser instance
+	for _, browser := range p.browsers {
+		browser.MustClose()
 	}
 
+	// Reset the state to allow for potential re-initialization
+	p.browsers = nil
 	p.initialized = false
+
+	// Log the cleanup
 	sharedInfrastructure.GetLogger().Info("PDF generator browser pool cleaned up")
 }
 
-// ReleasePagePool cleans up all pages in the pool using the provided cleanup function
-func (p *PagePool) ReleasePagePool(cleanup func(*rod.Page)) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	close(p.pages)
-	for page := range p.pages {
-		cleanup(page)
-	}
-}
-
-// Get retrieves a page from the pool or creates a new one using the provided factory function
-func (p *PagePool) Get(create func() *rod.Page) *rod.Page {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	select {
-	case page := <-p.pages:
-		sharedInfrastructure.GetLogger().Debug("Page acquired from pool")
-		return page
-	default:
-		sharedInfrastructure.GetLogger().Debug("Creating new page")
-		return create()
-	}
-}
-
-// Put returns a page to the pool
-func (p *PagePool) Put(page *rod.Page) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	select {
-	case p.pages <- page:
-		// Successfully put the page back in the pool
-		sharedInfrastructure.GetLogger().Debug("Page returned to pool")
-	default:
-		// Pool is full, close the page
-		sharedInfrastructure.GetLogger().Debug("Page pool is full, closing page")
-		page.MustClose()
-	}
-}
-
-// buildPDFOptions creates and configures a proto.PagePrintToPDF object based on the provided item configuration
+// buildPDFOptions converts a configuration object from the domain DTO into Chrome's PDF print options.
+// It applies all specified configuration parameters such as orientation, margins, headers/footers, etc.
+// If config is nil, default options will be returned.
 func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePrintToPDF {
-	// Create default PDF options
 	pdfOpts := &proto.PagePrintToPDF{}
-
 	if config == nil {
-		return pdfOpts
+		return pdfOpts // Return default options if no config provided
 	}
 
-	// Set orientation
+	// Set page orientation (portrait or landscape)
 	if config.Orientation != nil {
 		pdfOpts.Landscape = *config.Orientation == "landscape"
 	}
 
-	// Set display header/footer flag
+	// Configure header and footer visibility
 	if config.DisplayHeaderFooter != nil {
 		pdfOpts.DisplayHeaderFooter = *config.DisplayHeaderFooter
 	}
 
-	// Set print background flag
+	// Configure background elements printing
 	if config.PrintBackground != nil {
 		pdfOpts.PrintBackground = *config.PrintBackground
 	}
 
-	// Set scale
+	// Set scale factor for the content
 	if config.Scale != nil {
 		pdfOpts.Scale = config.Scale
 	}
 
-	// Set page size (width and height)
+	// Configure page size dimensions
 	if config.Size != nil {
 		if config.Size.Width != nil {
 			pdfOpts.PaperWidth = config.Size.Width
@@ -251,7 +203,7 @@ func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePri
 		}
 	}
 
-	// Set margins
+	// Configure page margins
 	if config.Margin != nil {
 		if config.Margin.Top != nil {
 			pdfOpts.MarginTop = config.Margin.Top
@@ -267,12 +219,12 @@ func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePri
 		}
 	}
 
-	// Set page range
+	// Set page range to be printed
 	if config.PageRanges != nil {
 		pdfOpts.PageRanges = fmt.Sprintf("%d-%d", config.PageRanges.Start, config.PageRanges.End)
 	}
 
-	// Set header and footer HTML
+	// Set custom HTML for header and footer
 	if config.HeaderHTML != nil {
 		pdfOpts.HeaderTemplate = *config.HeaderHTML
 	}
@@ -283,179 +235,41 @@ func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePri
 	return pdfOpts
 }
 
-// mergePDFs receives multiple io.Reader and returns a single combined PDF as io.Reader
-// Uses go routines to process PDF files in parallel while preserving the original order
+// mergePDFs combines multiple PDF readers into a single PDF document.
+// It works by writing each reader to a temporary file, then using the pdfcpu library
+// to merge them into a single output file, which is then returned as a reader.
+// This function handles concurrent writing of the input PDFs to optimize performance.
 func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
-	// Create slices for temporary files
+	// Create array to store temporary file paths
 	tempFilesNames := make([]string, len(readers))
 
-	// Create a temporary directory for PDF files
+	// Create a temporary directory to store individual PDFs
 	tempDir, err := os.MkdirTemp("", "pdf_merge")
 	if err != nil {
 		return nil, fmt.Errorf("error creating temporary directory: %w", err)
 	}
+	// Ensure cleanup of temporary files when function exits
 	defer func() {
-		if err := os.RemoveAll(tempDir); err != nil {
-			sharedInfrastructure.GetLogger().WithError(err).Error("error removing temporary directory")
-		}
+		_ = os.RemoveAll(tempDir)
 	}()
 
-	// Create wait group to wait for all files to be processed
+	// Set up concurrency controls
 	var wg sync.WaitGroup
-	var mu sync.Mutex // Mutex to protect access to shared resources
+	var mu sync.Mutex
 	var processingErr error
 
-	// Process each reader in parallel
-	for readerIndex, currentReader := range readers {
+	// Process each PDF reader concurrently
+	for idx, reader := range readers {
 		wg.Add(1)
-
-		// Use goroutine to process readers concurrently
-		go func(idx int, reader io.Reader) {
+		go func(i int, r io.Reader) {
 			defer wg.Done()
 
-			// Create an unique identifier for the temporary file
-			tempFileRandomId := sharedInfrastructure.GenerateXID()
+			// Generate a unique ID for this temporary file
+			id := sharedInfrastructure.GenerateXID()
+			path := filepath.Join(tempDir, fmt.Sprintf("temp_%s.pdf", id))
 
-			// Create a temporary file for this PDF
-			tempFileName := filepath.Join(
-				tempDir,
-				fmt.Sprintf("temp_%s.pdf", tempFileRandomId),
-			)
-
-			// Create the file
-			tempFile, err := os.Create(tempFileName)
-			if err != nil {
-				mu.Lock()
-				if processingErr == nil {
-					processingErr = fmt.Errorf("error creating temporary file: %w", err)
-				}
-				mu.Unlock()
-				return
-			}
-
-			// Copy reader content to the file
-			_, err = io.Copy(tempFile, reader)
-			_ = tempFile.Close() // Close the file after writing
-
-			if err != nil {
-				mu.Lock()
-				if processingErr == nil {
-					processingErr = fmt.Errorf("error writing to temporary file: %w", err)
-				}
-				mu.Unlock()
-				return
-			}
-
-			// Store the filename at the correct index to maintain order
-			mu.Lock()
-			tempFilesNames[idx] = tempFileName
-			mu.Unlock()
-		}(readerIndex, currentReader)
-	}
-
-	// Wait for all files to be processed
-	wg.Wait()
-
-	// Check if an error occurred during processing
-	if processingErr != nil {
-		return nil, processingErr
-	}
-
-	// Create an unique identifier for the merged file
-	mergedFileRandomId := sharedInfrastructure.GenerateXID()
-
-	// Create output file for the merged PDF
-	mergedFileName := filepath.Join(
-		tempDir,
-		fmt.Sprintf("merged_%s.pdf", mergedFileRandomId),
-	)
-
-	// Merge the temporary files into the output file
-	if err := pdfProcessingAPI.MergeCreateFile(
-		tempFilesNames,
-		mergedFileName,
-		false,
-		pdfProcessingModel.NewDefaultConfiguration(),
-	); err != nil {
-		return nil, fmt.Errorf("error merging PDF files: %w", err)
-	}
-
-	// Read the merged file
-	mergedContent, err := os.ReadFile(mergedFileName)
-	if err != nil {
-		return nil, fmt.Errorf("error reading merged PDF file: %w", err)
-	}
-
-	// Return the merged content as an io.Reader
-	return bytes.NewReader(mergedContent), nil
-}
-
-// GeneratePDF generates a PDF based on the provided request.
-// It uses the browser and page pools to generate individual PDFs for each item in the request,
-// and merges them into a single PDF file.
-func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader, error) {
-	// Initialize the browser pool if not already done
-	if !p.initialized {
-		p.Initialize()
-	}
-
-	// Create a PDF files slice to merge later
-	readers := make([]io.Reader, len(request.Items))
-
-	// Create a wait group to wait for all PDFs to be generated
-	var wg sync.WaitGroup
-	var mu sync.Mutex // Mutex to protect concurrent access to readers slice
-	var processingErr error
-
-	// Get a browser from the pool to process all items in the request
-	browser := p.getBrowser()
-	sharedInfrastructure.GetLogger().Debug("Browser acquired")
-	defer p.returnBrowser(browser)
-
-	// Process each item in the request
-	for itemIndex, item := range request.Items {
-		wg.Add(1)
-
-		// Use goroutine to process items concurrently
-		go func(idx int, pdfItem dto.PDFItem) {
-			defer wg.Done()
-
-			// Build PDF options from item configuration
-			pdfOpts := p.buildPDFOptions(pdfItem.Config)
-
-			// Create or get a page from pool
-			createPage := func() *rod.Page {
-				return browser.instance.MustIncognito().MustPage()
-			}
-
-			page := browser.pagePool.Get(createPage)
-			defer browser.pagePool.Put(page)
-
-			// Set HTML content of the page
-			err := page.SetDocumentContent(pdfItem.BodyHTML)
-			if err != nil {
-				mu.Lock()
-				if processingErr == nil {
-					processingErr = fmt.Errorf("error setting document content: %w", err)
-				}
-				mu.Unlock()
-				return
-			}
-
-			// Wait for the page to load
-			page.MustWaitLoad().MustWaitIdle()
-
-			page.MustEval(`() => {
-				return Promise.all(
-					Array.from(document.images).map(img => {
-						if (img.complete) return Promise.resolve()
-						return new Promise(resolve => img.onload = img.onerror = resolve)
-					})
-				)
-			}`)
-
-			// Generate PDF
-			pdf, err := page.PDF(pdfOpts)
+			// Create and write to the temporary file
+			f, err := os.Create(path)
 			if err != nil {
 				mu.Lock()
 				if processingErr == nil {
@@ -465,30 +279,137 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 				return
 			}
 
-			// Store the generated PDF in the readers slice
+			// Ensure the file is closed after writing
+			defer func() {
+				_ = f.Close()
+			}()
+
+			// Copy PDF content to the temporary file
+			if _, err = io.Copy(f, r); err != nil {
+				mu.Lock()
+				if processingErr == nil {
+					processingErr = err
+				}
+				mu.Unlock()
+				return
+			}
+
+			// Store the temporary file path in our array
 			mu.Lock()
-			readers[idx] = pdf
+			tempFilesNames[i] = path
 			mu.Unlock()
-		}(itemIndex, item)
+		}(idx, reader)
 	}
 
-	// Wait for all PDFs to be generated
+	// Wait for all goroutines to complete
 	wg.Wait()
 
-	// Check if an error occurred during processing
+	// Check if any errors occurred during processing
 	if processingErr != nil {
-		sharedInfrastructure.GetLogger().
-			WithError(processingErr).
-			Error("error generating PDF")
-
 		return nil, processingErr
 	}
 
-	// Merge all generated PDFs into a single PDF
-	mergedPDF, err := p.mergePDFs(readers)
-	if err != nil {
-		return nil, fmt.Errorf("error merging PDFs: %w", err)
+	// Create output file path with a unique name
+	outputPath := filepath.Join(tempDir, fmt.Sprintf("merged_%s.pdf", sharedInfrastructure.GenerateXID()))
+
+	// Merge all PDFs into a single file using pdfcpu library
+	if err := pdfProcessingAPI.MergeCreateFile(tempFilesNames, outputPath, false, pdfProcessingModel.NewDefaultConfiguration()); err != nil {
+		return nil, err
 	}
 
-	return mergedPDF, nil
+	// Read the merged PDF file
+	merged, err := os.ReadFile(outputPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the merged PDF as a reader
+	return bytes.NewReader(merged), nil
+}
+
+// GeneratePDF is the main method for generating PDFs from HTML content.
+// It processes each PDF item concurrently using the browser pool, then merges
+// all generated PDFs into a single document which is returned as an io.Reader.
+// This method handles initializing the generator if needed and coordinates
+// the parallel generation of multiple PDF items.
+func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader, error) {
+	// Ensure generator is initialized
+	if !p.initialized {
+		p.Initialize()
+	}
+
+	// Prepare storage for individual PDF readers
+	readers := make([]io.Reader, len(request.Items))
+
+	// Set up concurrency controls
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var processingErr error
+
+	// Process each PDF item concurrently
+	for idx, item := range request.Items {
+		wg.Add(1)
+		go func(i int, pdfItem dto.PDFItem) {
+			defer wg.Done()
+
+			// Get a page from the pool
+			pwb := p.RequestPage()
+			// Ensure page is returned to pool after use
+			defer p.ReturnPage(pwb)
+
+			// Build PDF options based on item configuration
+			opts := p.buildPDFOptions(pdfItem.Config)
+
+			// Set the HTML content to the page
+			err := pwb.Page.SetDocumentContent(pdfItem.BodyHTML)
+			if err != nil {
+				mu.Lock()
+				if processingErr == nil {
+					processingErr = err
+				}
+				mu.Unlock()
+				return
+			}
+
+			// Wait for page to fully load and become idle
+			pwb.Page.MustWaitLoad().MustWaitIdle()
+
+			// Wait for all images to load
+			pwb.Page.MustEval(`() => {
+				return Promise.all(
+					Array.from(document.images).map(img => {
+						if (img.complete) return Promise.resolve();
+						return new Promise(resolve => img.onload = img.onerror = resolve);
+					})
+				);
+			}`)
+
+			// Generate the PDF from the page
+			pdf, err := pwb.Page.PDF(opts)
+			if err != nil {
+				mu.Lock()
+				if processingErr == nil {
+					processingErr = err
+				}
+				mu.Unlock()
+				return
+			}
+
+			// Store the generated PDF reader
+			mu.Lock()
+			readers[i] = pdf
+			mu.Unlock()
+		}(idx, item)
+	}
+
+	// Wait for all PDF generation to complete
+	wg.Wait()
+
+	// Check if any errors occurred during generation
+	if processingErr != nil {
+		return nil, processingErr
+	}
+
+	// Merge all generated PDFs into a single document
+	return p.mergePDFs(readers)
 }
