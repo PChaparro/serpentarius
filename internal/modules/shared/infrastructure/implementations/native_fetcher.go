@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/PChaparro/serpentarius/internal/modules/shared/domain/definitions"
-	"github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 )
 
 // NativeFetcher implements the Fetcher interface using Go's native http package
@@ -37,8 +36,6 @@ func GetNativeFetcher() definitions.Fetcher {
 		nativeFetcher = &NativeFetcher{
 			client: client,
 		}
-
-		infrastructure.GetLogger().Info("Native fetcher initialized")
 	})
 
 	return nativeFetcher

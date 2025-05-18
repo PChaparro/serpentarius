@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/PChaparro/serpentarius/internal/modules/shared/domain/definitions"
-	"github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 	"github.com/cespare/xxhash/v2"
 )
 
@@ -22,7 +21,6 @@ var (
 func GetXxHashGenerator() definitions.HashGenerator {
 	xxHashOnce.Do(func() {
 		xxHashGenerator = &XxHashGenerator{}
-		infrastructure.GetLogger().Info("XXHash generator initialized")
 	})
 
 	return xxHashGenerator

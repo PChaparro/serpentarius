@@ -4,6 +4,7 @@ import (
 	"log"
 
 	pdfHttp "github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/http"
+	"github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 	sharedMiddlewares "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure/http/middlewares"
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,10 @@ var moduleRegistries = []RouterRegistry{
 // RouterRegistry registers routes of all modules
 func RegisterRoutes() {
 	router := gin.Default()
+
+	if infrastructure.GetEnvironment().Environment == infrastructure.ENVIRONMENT_PRODUCTION {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// Register global middlewares
 	router.Use(sharedMiddlewares.ErrorHandlerMiddleware())

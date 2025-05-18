@@ -94,6 +94,7 @@ func (p *PDFGeneratorRod) Initialize() {
 	for range numBrowsers {
 		// Launch a new browser
 		launcherURL := launcher.New().
+			Bin(sharedInfrastructure.GetEnvironment().ChromiumBinaryPath).
 			Headless(true).                    // Run without a GUI
 			Leakless(true).                    // Prevent memory leaks
 			Set("disable-gpu", "1").           // Disable GPU acceleration

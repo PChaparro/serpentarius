@@ -23,7 +23,7 @@ func GetLogger() *Logger {
 		// Set the log level based on the environment variable
 		var logLevel zapcore.Level
 
-		if GetEnvironment().Environment == "production" {
+		if GetEnvironment().Environment == ENVIRONMENT_PRODUCTION {
 			logLevel = zapcore.InfoLevel
 		} else {
 			logLevel = zapcore.DebugLevel
