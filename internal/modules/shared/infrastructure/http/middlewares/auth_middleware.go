@@ -15,40 +15,36 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Authorization header is required",
 			})
-			c.Abort()
 			return
 		}
 
 		// Check if it starts with "Bearer "
 		const prefix = "Bearer "
 		if !strings.HasPrefix(authHeader, prefix) {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Authorization header must start with 'Bearer'",
 			})
-			c.Abort()
 			return
 		}
 
 		// Extract the token
 		token := strings.TrimPrefix(authHeader, prefix)
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Token cannot be empty",
 			})
-			c.Abort()
 			return
 		}
 
 		// Compare the token with the environment variable
 		envSecret := sharedInfrastructure.GetEnvironment().AuthSecret
 		if token != envSecret {
-			c.JSON(http.StatusUnauthorized, gin.H{
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Authorization token is wrong",
 			})
-			c.Abort()
 			return
 		}
 
