@@ -75,6 +75,8 @@ docker run -p 3000:3000 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
   -e REDIS_PASSWORD=dragonfly \
   -e REDIS_DB=0 \
   -e CHROMIUM_BINARY_PATH=/usr/bin/chromium \
+  -e MAX_CHROMIUM_BROWSERS=1 \
+  -e MAX_CHROMIUM_TABS_PER_BROWSER=4 \
   -e ENVIRONMENT=production \
   serpentarius
 ```
@@ -83,17 +85,19 @@ docker run -p 3000:3000 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
 
 Para cualquier método de instalación, configura estas variables en un archivo `.env` o en el entorno:
 
-| Nombre                 | Descripción                                   | Valor para desarrollo                                                                          |
-| ---------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `AWS_S3_ENDPOINT_URL`  | URL del endpoint de S3                        | `http://localhost:9000`                                                                        |
-| `AwsAccessKeyID`       | ID de la clave de acceso de AWS               | Debes crear un Bucket y copiar el `Access Key ID` de un usuario que tenga acceso al Bucket     |
-| `AwsSecretAccessKey`   | Clave de acceso secreta de AWS                | Debes crear un Bucket y copiar el `Secret Access Key` de un usuario que tenga acceso al Bucket |
-| `AwsRegion`            | Región de AWS donde se encuentra el Bucket    | Por defecto se usa el valor `us-east-1`                                                        |
-| `REDIS_HOST`           | Hostname del servidor Redis                   | `localhost`                                                                                    |
-| `REDIS_PORT`           | Puerto del servidor Redis                     | `6379`                                                                                         |
-| `REDIS_PASSWORD`       | Contraseña del servidor Redis                 | `dragonfly`                                                                                    |
-| `REDIS_DB`             | Base de datos de Redis a utilizar             | `0`                                                                                            |
-| `CHROMIUM_BINARY_PATH` | Ruta al binario de Chromium                   | `/usr/bin/chromium`                                                                            |
-| `Environment`          | Entorno de ejecución (development/production) | `development`                                                                                  |
+| Nombre                          | Descripción                                        | Valor para desarrollo                                                                          |
+| ------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `AWS_S3_ENDPOINT_URL`           | URL del endpoint de S3                             | `http://localhost:9000`                                                                        |
+| `AwsAccessKeyID`                | ID de la clave de acceso de AWS                    | Debes crear un Bucket y copiar el `Access Key ID` de un usuario que tenga acceso al Bucket     |
+| `AwsSecretAccessKey`            | Clave de acceso secreta de AWS                     | Debes crear un Bucket y copiar el `Secret Access Key` de un usuario que tenga acceso al Bucket |
+| `AwsRegion`                     | Región de AWS donde se encuentra el Bucket         | Por defecto se usa el valor `us-east-1`                                                        |
+| `REDIS_HOST`                    | Hostname del servidor Redis                        | `localhost`                                                                                    |
+| `REDIS_PORT`                    | Puerto del servidor Redis                          | `6379`                                                                                         |
+| `REDIS_PASSWORD`                | Contraseña del servidor Redis                      | `dragonfly`                                                                                    |
+| `REDIS_DB`                      | Base de datos de Redis a utilizar                  | `0`                                                                                            |
+| `CHROMIUM_BINARY_PATH`          | Ruta al binario de Chromium                        | `/usr/bin/chromium`                                                                            |
+| `MAX_CHROMIUM_BROWSERS`         | Número máximo de navegadores Chromium concurrentes | `1`                                                                                            |
+| `MAX_CHROMIUM_TABS_PER_BROWSER` | Número máximo de pestañas por navegador Chromium   | `4`                                                                                            |
+| `Environment`                   | Entorno de ejecución (development/production)      | `development`                                                                                  |
 
 Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.yml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.
