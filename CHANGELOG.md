@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.3.0](https://github.com/PChaparro/serpentarius/compare/877549eb779962b50fed552b4f52440a1b0c197a..v0.3.0) - 2025-05-18
+#### Features
+- containerization & docs (#3) - ([877549e](https://github.com/PChaparro/serpentarius/commit/877549eb779962b50fed552b4f52440a1b0c197a)) - Pedro Chaparro
+
+- - -
+
 ## [v0.2.0](https://github.com/PChaparro/serpentarius/compare/3fab028dbe6727cd94bdaa2f66a2d69af721c755..v0.2.0) - 2025-05-17
 #### Features
 - **(pdf)** implement caching (#2) - ([3fab028](https://github.com/PChaparro/serpentarius/commit/3fab028dbe6727cd94bdaa2f66a2d69af721c755)) - Pedro Chaparro
