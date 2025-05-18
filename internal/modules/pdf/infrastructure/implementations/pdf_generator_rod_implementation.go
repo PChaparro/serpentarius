@@ -249,7 +249,9 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 		return nil, fmt.Errorf("error creating temporary directory: %w", err)
 	}
 	// Ensure cleanup of temporary files when function exits
-	defer os.RemoveAll(tempDir)
+	defer func() {
+		_ = os.RemoveAll(tempDir)
+	}()
 
 	// Set up concurrency controls
 	var wg sync.WaitGroup
@@ -276,7 +278,11 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 				mu.Unlock()
 				return
 			}
-			defer f.Close()
+
+			// Ensure the file is closed after writing
+			defer func() {
+				_ = f.Close()
+			}()
 
 			// Copy PDF content to the temporary file
 			if _, err = io.Copy(f, r); err != nil {
