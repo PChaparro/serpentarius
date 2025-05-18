@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.3.1](https://github.com/PChaparro/serpentarius/compare/0248073d20abf7596b904d65ac3d0331328ccdf6..v0.3.1) - 2025-05-18
+#### Bug Fixes
+- **(pdf)** :bug: wait for all images to load - ([4dbe569](https://github.com/PChaparro/serpentarius/commit/4dbe5692b7717706d0bcf4e08536f454fbfe3c28)) - Pedro Andrés Chaparro Quintero
+- **(pdf)** :bug: handle nil pointers correctly when converting request object to DTO - ([0248073](https://github.com/PChaparro/serpentarius/commit/0248073d20abf7596b904d65ac3d0331328ccdf6)) - Pedro Andrés Chaparro Quintero
+
+- - -
+
 ## [v0.3.0](https://github.com/PChaparro/serpentarius/compare/877549eb779962b50fed552b4f52440a1b0c197a..v0.3.0) - 2025-05-18
 #### Features
 - containerization & docs (#3) - ([877549e](https://github.com/PChaparro/serpentarius/commit/877549eb779962b50fed552b4f52440a1b0c197a)) - Pedro Chaparro
