@@ -37,8 +37,6 @@ For commit messages, we follow the [Conventional Commits](https://www.convention
 
 5. **Test Your Changes**: Make sure to test your changes before submitting a pull request. This includes running existing integration tests and adding new tests if your change requires it.
 
-You can find the command to run integration tests in the project's [README.md](README.md?tab=readme-ov-file#running-tests) file.
-
 6. **Submit a Pull Request**: Once you have made and tested your changes, submit a pull request from your branch to the `development` branch of the original repository.
 
 For the pull request title, use the same naming standard we follow when making commits or creating branches. For example, `feat: new feature` or `fix: bug fix`. This helps maintain a clear record of what changes are being proposed.
