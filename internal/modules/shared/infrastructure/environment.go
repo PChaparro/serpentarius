@@ -9,9 +9,17 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+const (
+	ENVIRONMENT_PRODUCTION  = "production"
+	ENVIRONMENT_DEVELOPMENT = "development"
+)
+
 // EnvironmentSpec holds the configuration for the application environment.
 type EnvironmentSpec struct {
 	Environment string `split_words:"true" default:"development"`
+
+	// Binaries
+	ChromiumBinaryPath string `split_words:"true" default:"/usr/bin/chromium-browser"`
 
 	// AWS S3
 	AwsS3EndpointURL   string `split_words:"true" default:"https://s3.amazonaws.com"`
@@ -45,7 +53,7 @@ func GetEnvironment() *EnvironmentSpec {
 func loadFromEnvFile() {
 	execEnvironment := os.Getenv("ENVIRONMENT")
 
-	if execEnvironment != "production" {
+	if execEnvironment != ENVIRONMENT_PRODUCTION {
 		err := godotenv.Load(".env")
 		if err != nil {
 			log.Fatal("[ERROR] ", err.Error())

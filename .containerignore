@@ -1,0 +1,14 @@
+# Editor files
+.vscode/
+
+# Github
+.github/
+
+# Documentation
+docs/
+
+# Temporal files
+tmp/
+
+# Volumes
+volumes/
