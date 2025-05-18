@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.4.0](https://github.com/PChaparro/serpentarius/compare/30dd12bf60ebb614c970cbc9e8e12123cf38cefc..v0.4.0) - 2025-05-18
+#### Features
+- authenticate with http headers (#7) - ([8800909](https://github.com/PChaparro/serpentarius/commit/88009095568f18e62de2112b456c249f0f7b43d6)) - Pedro Chaparro
+#### Performance Improvements
+- use global pool of pages (#4) - ([30dd12b](https://github.com/PChaparro/serpentarius/commit/30dd12bf60ebb614c970cbc9e8e12123cf38cefc)) - Pedro Chaparro
+
+- - -
+
 ## [v0.3.1](https://github.com/PChaparro/serpentarius/compare/0248073d20abf7596b904d65ac3d0331328ccdf6..v0.3.1) - 2025-05-18
 #### Bug Fixes
 - **(pdf)** :bug: wait for all images to load - ([4dbe569](https://github.com/PChaparro/serpentarius/commit/4dbe5692b7717706d0bcf4e08536f454fbfe3c28)) - Pedro Andrés Chaparro Quintero

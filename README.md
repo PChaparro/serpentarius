@@ -74,6 +74,7 @@ docker run -p 3000:3000 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
   -e REDIS_PORT=6379 \
   -e REDIS_PASSWORD=dragonfly \
   -e REDIS_DB=0 \
+  -e AUTH_SECRET=your_secret_key \
   -e CHROMIUM_BINARY_PATH=/usr/bin/chromium \
   -e MAX_CHROMIUM_BROWSERS=1 \
   -e MAX_CHROMIUM_TABS_PER_BROWSER=4 \
@@ -95,9 +96,16 @@ For any installation method, configure these variables in a `.env` file or in th
 | `REDIS_PORT`                    | Redis server port                              | `6379`                                                                               |
 | `REDIS_PASSWORD`                | Redis server password                          | `dragonfly`                                                                          |
 | `REDIS_DB`                      | Redis database to use                          | `0`                                                                                  |
+| `AUTH_SECRET`                   | Secret key for user authentication             | No default value                                                                     |
 | `CHROMIUM_BINARY_PATH`          | Path to the Chromium binary                    | `/usr/bin/chromium`                                                                  |
 | `MAX_CHROMIUM_BROWSERS`         | Maximum number of concurrent Chromium browsers | `1`                                                                                  |
 | `MAX_CHROMIUM_TABS_PER_BROWSER` | Maximum number of tabs per Chromium browser    | `4`                                                                                  |
 | `Environment`                   | Execution environment (development/production) | `development`                                                                        |
 
 The values shown in the `Development Value` column are compatible with the `container-compose.yml` file included in the project, which configures Dragonfly (Redis alternative) and MinIO (S3 alternative) for local development. If you use your own servers, adjust these variables accordingly.
+
+To generate the authentication secret, you can use the following command:
+
+```bash
+openssl rand -base64 64
+```
