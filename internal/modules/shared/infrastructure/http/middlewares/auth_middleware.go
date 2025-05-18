@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"crypto/subtle"
 	"net/http"
 	"strings"
 
@@ -41,7 +42,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Compare the token with the environment variable
 		envSecret := sharedInfrastructure.GetEnvironment().AuthSecret
-		if token != envSecret {
+		if subtle.ConstantTimeCompare([]byte(token), []byte(envSecret)) != 1 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Authorization token is wrong",
 			})
