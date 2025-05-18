@@ -23,3 +23,13 @@ go.work.sum
 
 # env file
 .env
+
+# Temp files
+tmp/
+
+# Docker volumes
+volumes/
+
+# Editor files
+/.idea/
+/.vscode/

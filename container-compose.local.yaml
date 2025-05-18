@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  serpentarius-minio: 
+    image: docker.io/minio/minio:latest
+    container_name: serpentarius-minio
+    restart: on-failure
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./volumes/minio:/data
+    command: server /data --console-address ":9001"
+  
+  serpentarius-dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    container_name: serpentarius-dragonfly
+    restart: on-failure
+    ulimits:
+      memlock: -1
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./volumes/dragonfly:/data
