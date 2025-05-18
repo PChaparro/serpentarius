@@ -100,6 +100,47 @@ func getPageSizeFromString(size string) *dto.PageSize {
 	}
 }
 
+// buildItemConfig safely converts a request ItemConfig to a domain ItemConfig, handling nil pointers
+func buildItemConfig(config *ItemConfig) *dto.ItemConfig {
+	if config == nil {
+		return nil
+	}
+
+	itemConfig := &dto.ItemConfig{
+		Orientation:         config.Orientation,
+		DisplayHeaderFooter: config.DisplayHeaderFooter,
+		HeaderHTML:          config.HeaderHTML,
+		FooterHTML:          config.FooterHTML,
+		PrintBackground:     config.PrintBackground,
+		Scale:               config.Scale,
+	}
+
+	// Handle Size safely
+	if config.Size != nil {
+		itemConfig.Size = getPageSizeFromString(*config.Size)
+	}
+
+	// Handle Margin safely
+	if config.Margin != nil {
+		itemConfig.Margin = &dto.PageMargin{
+			Top:    config.Margin.Top,
+			Bottom: config.Margin.Bottom,
+			Left:   config.Margin.Left,
+			Right:  config.Margin.Right,
+		}
+	}
+
+	// Handle PageRanges safely
+	if config.PageRanges != nil {
+		itemConfig.PageRanges = &dto.PageRange{
+			Start: config.PageRanges.Start,
+			End:   config.PageRanges.End,
+		}
+	}
+
+	return itemConfig
+}
+
 // ToDTO converts the request to a PDFGenerationDTO that can be used by the use case
 func (r *GeneratePDFReturningURLRequest) ToDTO() *dto.PDFGenerationDTO {
 	config := dto.GeneralConfig{
@@ -114,25 +155,7 @@ func (r *GeneratePDFReturningURLRequest) ToDTO() *dto.PDFGenerationDTO {
 	for i, item := range r.Items {
 		items[i] = dto.PDFItem{
 			BodyHTML: item.BodyHTML,
-			Config: &dto.ItemConfig{
-				Orientation:         item.Config.Orientation,
-				DisplayHeaderFooter: item.Config.DisplayHeaderFooter,
-				HeaderHTML:          item.Config.HeaderHTML,
-				FooterHTML:          item.Config.FooterHTML,
-				PrintBackground:     item.Config.PrintBackground,
-				Scale:               item.Config.Scale,
-				Margin: &dto.PageMargin{
-					Top:    item.Config.Margin.Top,
-					Bottom: item.Config.Margin.Bottom,
-					Left:   item.Config.Margin.Left,
-					Right:  item.Config.Margin.Right,
-				},
-				PageRanges: &dto.PageRange{
-					Start: item.Config.PageRanges.Start,
-					End:   item.Config.PageRanges.End,
-				},
-				Size: getPageSizeFromString(*item.Config.Size),
-			},
+			Config:   buildItemConfig(item.Config),
 		}
 	}
 
