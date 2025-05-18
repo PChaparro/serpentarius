@@ -28,8 +28,7 @@ func RequestValidationMiddleware(structType any) gin.HandlerFunc {
 
 		// Decode request body
 		if err := c.ShouldBindJSON(requestStructPtr); err != nil {
-			c.JSON(http.StatusBadRequest, defaultBadRequestResponse)
-			c.Abort()
+			c.AbortWithStatusJSON(http.StatusBadRequest, defaultBadRequestResponse)
 			return
 		}
 
@@ -37,8 +36,7 @@ func RequestValidationMiddleware(structType any) gin.HandlerFunc {
 		if err := sharedInfrastructure.GetValidatorInstance().Struct(requestStructPtr); err != nil {
 			validationErrors, ok := err.(validator.ValidationErrors)
 			if !ok {
-				c.JSON(http.StatusBadRequest, defaultBadRequestResponse)
-				c.Abort()
+				c.AbortWithStatusJSON(http.StatusBadRequest, defaultBadRequestResponse)
 				return
 			}
 
@@ -55,11 +53,10 @@ func RequestValidationMiddleware(structType any) gin.HandlerFunc {
 				errors = append(errors, fmt.Sprintf("Field '%s': %s", fieldPath, sharedInfrastructure.GetUserFriendlyValidationErrorMessage(err)))
 			}
 
-			c.JSON(http.StatusBadRequest, map[string]any{
+			c.AbortWithStatusJSON(http.StatusBadRequest, map[string]any{
 				"message": "Validation failed",
 				"errors":  errors,
 			})
-			c.Abort()
 			return
 		}
 

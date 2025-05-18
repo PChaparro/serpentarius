@@ -74,6 +74,7 @@ docker run -p 3000:3000 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
   -e REDIS_PORT=6379 \
   -e REDIS_PASSWORD=dragonfly \
   -e REDIS_DB=0 \
+  -e AUTH_SECRET=your_secret_key \
   -e CHROMIUM_BINARY_PATH=/usr/bin/chromium \
   -e MAX_CHROMIUM_BROWSERS=1 \
   -e MAX_CHROMIUM_TABS_PER_BROWSER=4 \
@@ -95,9 +96,16 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 | `REDIS_PORT`                    | Puerto del servidor Redis                          | `6379`                                                                                         |
 | `REDIS_PASSWORD`                | Contraseña del servidor Redis                      | `dragonfly`                                                                                    |
 | `REDIS_DB`                      | Base de datos de Redis a utilizar                  | `0`                                                                                            |
+| `AUTH_SECRET`                   | Clave secreta para la autenticación de usuarios    | No se establece valor por defecto                                                              |
 | `CHROMIUM_BINARY_PATH`          | Ruta al binario de Chromium                        | `/usr/bin/chromium`                                                                            |
 | `MAX_CHROMIUM_BROWSERS`         | Número máximo de navegadores Chromium concurrentes | `1`                                                                                            |
 | `MAX_CHROMIUM_TABS_PER_BROWSER` | Número máximo de pestañas por navegador Chromium   | `4`                                                                                            |
 | `Environment`                   | Entorno de ejecución (development/production)      | `development`                                                                                  |
 
 Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.yml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.
+
+Para generar el secreto de autenticación, puedes usar el siguiente comando:
+
+```bash
+openssl rand -base64 64
+```
