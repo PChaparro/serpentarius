@@ -445,6 +445,15 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 			// Wait for the page to load
 			page.MustWaitLoad().MustWaitIdle()
 
+			page.MustEval(`() => {
+				return Promise.all(
+					Array.from(document.images).map(img => {
+						if (img.complete) return Promise.resolve()
+						return new Promise(resolve => img.onload = img.onerror = resolve)
+					})
+				)
+			}`)
+
 			// Generate PDF
 			pdf, err := page.PDF(pdfOpts)
 			if err != nil {
