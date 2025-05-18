@@ -7,7 +7,11 @@ meta {
 post {
   url: {{BASE_URL}}/pdf/url
   body: json
-  auth: inherit
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{AUTH_SECRET}}
 }
 
 body:json {
