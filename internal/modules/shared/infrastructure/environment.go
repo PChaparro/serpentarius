@@ -32,10 +32,13 @@ type EnvironmentSpec struct {
 	AwsRegion          string `split_words:"true" default:"us-east-1"`
 
 	// Redis
-	RedisHost     string `split_words:"true" default:"localhost"`
+	RedisHost     string `required:"true" split_words:"true"`
 	RedisPort     string `split_words:"true" default:"6379"`
-	RedisPassword string `split_words:"true" default:""`
+	RedisPassword string `required:"true" split_words:"true"`
 	RedisDB       int    `split_words:"true" default:"0"`
+
+	// Authentication
+	AuthSecret string `required:"true" split_words:"true"`
 }
 
 var (

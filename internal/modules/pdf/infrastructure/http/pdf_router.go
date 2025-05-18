@@ -31,6 +31,7 @@ func (pr *PDFRouter) RegisterRoutes(r *gin.RouterGroup) {
 	}
 	pdfGroup.POST(
 		"/url",
+		sharedMiddlewares.AuthMiddleware(),
 		sharedMiddlewares.RequestValidationMiddleware(requests.GeneratePDFReturningURLRequest{}),
 		generatePDFReturningURLController.Handle,
 	)
