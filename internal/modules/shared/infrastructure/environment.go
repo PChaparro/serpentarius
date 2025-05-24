@@ -24,6 +24,7 @@ type EnvironmentSpec struct {
 	// Concurrency
 	MaxChromiumBrowsers       int `split_words:"true" default:"1"`
 	MaxChromiumTabsPerBrowser int `split_words:"true" default:"4"`
+	MaxIdleSeconds            int `split_words:"true" default:"30"`
 
 	// AWS S3
 	AwsS3EndpointURL   string `split_words:"true" default:"https://s3.amazonaws.com"`
