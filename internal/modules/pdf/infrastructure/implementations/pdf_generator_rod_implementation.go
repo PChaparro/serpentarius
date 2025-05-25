@@ -372,11 +372,10 @@ func (p *PDFGeneratorRod) ReturnPage(pwb *PageWithBrowser) {
 // It closes all browser instances and releases associated resources.
 // This method is thread-safe and idempotent, so it's safe to call multiple times.
 func (p *PDFGeneratorRod) ReleaseBrowserPool() {
-	p.mutex.Lock()
-
-	// Wait for all pages to be returned
-	p.mutex.Unlock()
+	// Wait for all pages to finish processing before cleaning up
 	p.pageWaitGroup.Wait()
+
+	// Lock to ensure no concurrent access while cleaning up
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
