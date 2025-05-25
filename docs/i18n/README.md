@@ -111,3 +111,19 @@ Para generar el secreto de autenticación, puedes usar el siguiente comando:
 ```bash
 openssl rand -base64 64
 ```
+
+## Ejecución de tests y cobertura 🧪
+
+Para ejecutar todos los tests y generar un reporte de cobertura, usa:
+
+```bash
+go test -coverpkg=./... -coverprofile=./coverage/coverage.out ./tests/...
+```
+
+Para ver el reporte de cobertura en tu navegador:
+
+```bash
+go tool cover -html=./coverage/coverage.out
+```
+
+Asegúrate de tener todas las variables de entorno requeridas configuradas en un archivo `.env` en la raíz del repositorio para que los tests funcionen correctamente.
