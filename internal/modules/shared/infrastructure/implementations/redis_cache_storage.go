@@ -8,6 +8,7 @@ import (
 
 	"github.com/PChaparro/serpentarius/internal/modules/shared/domain/definitions"
 	"github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
+	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -47,13 +48,13 @@ func createRedisClient() *redis.Client {
 	ctx := context.Background()
 	_, err := client.Ping(ctx).Result()
 	if err != nil {
-		infrastructure.GetLogger().
+		sharedUtilities.GetLogger().
 			WithError(err).
 			Error("Failed to connect to Redis")
 		panic("Unable to connect to Redis: " + err.Error())
 	}
 
-	infrastructure.GetLogger().
+	sharedUtilities.GetLogger().
 		WithField("host", env.RedisHost).
 		WithField("port", env.RedisPort).
 		Info("Redis cache client initialized")
