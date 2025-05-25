@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "bodyHTML": "",
+      "config": {
+        "orientation": "unexisting",
+        "displayHeaderFooter": true,
+        "printBackground": true,
+        "scale": 100,
+        "size": "a4",
+        "margin": {
+          "top": -1.25,
+          "bottom": -0.5,
+          "right": -0.25,
+          "left": -0.25
+        },
+        "pageRanges": {
+          "start": 5,
+          "end": 1
+        },
+        "headerHTML": "",
+        "footerHTML": ""
+      }
+    }
+  ],
+  "config": {
+    "directory": "serpentarius",
+    "fileName": "sales-report-not-valid.pdf",
+    "publicURLPrefix": "localhost:3000",
+    "expiration": 30
+  }
+}

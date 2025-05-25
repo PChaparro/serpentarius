@@ -32,10 +32,8 @@ func GetUserFriendlyValidationErrorMessage(err validator.FieldError) string {
 		return "Value must be one of: " + err.Param()
 	case "gtefield":
 		return "Value must be greater than or equal to " + err.Param() + " field"
-	case "filename":
-		return "Must be a valid file name"
-	case "url":
-		return "Must be a valid URL"
+	case "http_url":
+		return "Must be a valid http URL"
 	default:
 		return "Invalid value"
 	}

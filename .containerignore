@@ -12,3 +12,7 @@ tmp/
 
 # Volumes
 volumes/
+
+# Tests
+tests/
+coverage/
