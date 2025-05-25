@@ -253,9 +253,9 @@ func (p *PDFGeneratorRod) closeIdlePage(page *PageWithTimeout) {
 
 	// Find the page in the available list
 	foundIdx := -1
-	for i, p := range p.availablePages {
-		if p == page {
-			foundIdx = i
+	for idx, availablePage := range p.availablePages {
+		if availablePage == page {
+			foundIdx = idx
 			break
 		}
 	}
@@ -272,9 +272,9 @@ func (p *PDFGeneratorRod) closeIdlePage(page *PageWithTimeout) {
 		browserInfo.PageCount--
 
 		// Remove from browser's pages list
-		for i, p := range browserInfo.Pages {
-			if p == page {
-				browserInfo.Pages = slices.Delete(browserInfo.Pages, i, i+1)
+		for idx, browserPage := range browserInfo.Pages {
+			if browserPage == page {
+				browserInfo.Pages = slices.Delete(browserInfo.Pages, idx, idx+1)
 				break
 			}
 		}
