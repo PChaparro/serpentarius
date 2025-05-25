@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -62,11 +63,36 @@ func loadFromEnvFile() {
 	execEnvironment := os.Getenv("ENVIRONMENT")
 
 	if execEnvironment != ENVIRONMENT_PRODUCTION {
-		err := godotenv.Load(".env")
+		// Try to find .env file starting from current directory and going up
+		envPath := findEnvFile()
+		err := godotenv.Load(envPath)
 		if err != nil {
 			log.Fatal("[ERROR] ", err.Error())
 		}
 	}
+}
+
+// findEnvFile searches for .env file starting from current directory and going up to root
+func findEnvFile() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return ".env" // fallback to current directory
+	}
+
+	for {
+		envPath := filepath.Join(dir, ".env")
+		if _, err := os.Stat(envPath); err == nil {
+			return envPath
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break // reached root directory
+		}
+		dir = parent
+	}
+
+	return ".env" // fallback to current directory
 }
 
 // initializeEnvironmentInstance initializes the EnvironmentSpec instance with environment variables.
