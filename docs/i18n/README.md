@@ -10,6 +10,10 @@
 
 Serpentarius (Alias "Pájaro Secretario") es un microservicio REST que genera documentos PDF a partir de plantillas HTML para tus proyectos.
 
+## Traducciones 🌐
+
+[English](../../README.md) | [Español](README.md) |
+
 ## ¿Qué soluciona Serpentarius? 🤔
 
 Generar PDFs a partir de HTML es una práctica común por la flexibilidad que ofrece (puedes crear casi cualquier diseño usando HTML y CSS). Sin embargo, integrar esta funcionalidad en cada proyecto presenta varios retos:
@@ -111,3 +115,19 @@ Para generar el secreto de autenticación, puedes usar el siguiente comando:
 ```bash
 openssl rand -base64 64
 ```
+
+## Ejecución de tests y cobertura 🧪
+
+Para ejecutar todos los tests y generar un reporte de cobertura, usa:
+
+```bash
+go test -coverpkg=./... -coverprofile=./coverage/coverage.out ./tests/...
+```
+
+Para ver el reporte de cobertura en tu navegador:
+
+```bash
+go tool cover -html=./coverage/coverage.out
+```
+
+Asegúrate de tener todas las variables de entorno requeridas configuradas en un archivo `.env` en la raíz del repositorio para que los tests funcionen correctamente.

@@ -1,8 +1,6 @@
 package http
 
 import (
-	"log"
-
 	pdfHttp "github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/http"
 	"github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 	sharedMiddlewares "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure/http/middlewares"
@@ -15,7 +13,7 @@ var moduleRegistries = []RouterRegistry{
 }
 
 // RouterRegistry registers routes of all modules
-func RegisterRoutes() {
+func RegisterRoutes() *gin.Engine {
 	// Set Gin mode based on the environment
 	if infrastructure.GetEnvironment().Environment == infrastructure.ENVIRONMENT_PRODUCTION {
 		gin.SetMode(gin.ReleaseMode)
@@ -33,7 +31,5 @@ func RegisterRoutes() {
 		registry.RegisterRoutes(apiV1)
 	}
 
-	if err := router.Run(":3000"); err != nil {
-		log.Fatalf("Error starting server: %v", err)
-	}
+	return router
 }

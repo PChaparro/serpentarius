@@ -42,7 +42,7 @@ type PDFItem struct {
 type GeneralConfig struct {
 	Directory       string `json:"directory" validate:"required"`
 	FileName        string `json:"fileName" validate:"required"`
-	PublicURLPrefix string `json:"publicURLPrefix,omitempty" validate:"required,url"`
+	PublicURLPrefix string `json:"publicURLPrefix,omitempty" validate:"required,http_url"`
 	Expiration      *int64 `json:"expiration,omitempty" validate:"omitempty,min=0"` // Expiration time in seconds
 }
 

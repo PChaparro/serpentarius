@@ -10,6 +10,10 @@
 
 Serpentarius (aka "Secretary Bird") is a REST microservice that generates PDF documents from HTML templates for your projects.
 
+## Translations 🌐
+
+[English](README.md) | [Español](docs/i18n/README.md) |
+
 ## What problems does Serpentarius solve? 🤔
 
 Generating PDFs from HTML is a common practice due to its flexibility (you can create almost any design using HTML and CSS). However, integrating this functionality into each project presents several challenges:
@@ -111,3 +115,19 @@ To generate the authentication secret, you can use the following command:
 ```bash
 openssl rand -base64 64
 ```
+
+## Running Tests and Coverage 🧪
+
+To run all tests and generate a coverage report, use:
+
+```bash
+go test -coverpkg=./... -coverprofile=./coverage/coverage.out ./tests/...
+```
+
+To view the coverage report in your browser:
+
+```bash
+go tool cover -html=./coverage/coverage.out
+```
+
+Make sure you have all required environment variables configured in a `.env` file at the root of the repository for the tests to work correctly.
