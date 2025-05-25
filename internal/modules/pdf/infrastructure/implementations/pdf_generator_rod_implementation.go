@@ -47,7 +47,6 @@ type PageWithBrowser struct {
 // This structure is used to track pages and their activity for dynamic resource management.
 type PageWithTimeout struct {
 	PageWithBrowser
-	LastUsed  time.Time   // Timestamp when the page was last returned to the pool
 	Timer     *time.Timer // Timer to track inactivity and trigger cleanup
 	InUse     bool        // Whether this page is currently being used
 	BrowserID string      // Unique identifier for the browser
@@ -145,7 +144,6 @@ func (p *PDFGeneratorRod) createPage(browserInfo *BrowserInfo) (*PageWithTimeout
 			Page:    page,
 			Browser: browserInfo.Browser,
 		},
-		LastUsed:  time.Now(),
 		InUse:     false,
 		BrowserID: browserInfo.ID,
 	}
@@ -344,9 +342,8 @@ func (p *PDFGeneratorRod) ReturnPage(pwb *PageWithBrowser) {
 		return
 	}
 
-	// Mark as not in use and update timestamp
+	// Mark as not in use
 	page.InUse = false
-	page.LastUsed = time.Now()
 
 	// Check if anyone is waiting for a page
 	if len(p.waitingQueue) > 0 {
