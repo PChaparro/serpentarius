@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	sharedErrors "github.com/PChaparro/serpentarius/internal/modules/shared/domain/errors"
+	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +21,11 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 
 		if len(c.Errors) > 0 {
 			err := c.Errors[0]
+
+			sharedUtilities.
+				GetLogger().
+				WithError(err.Err).
+				Error("An error occurred while processing the request")
 
 			switch e := err.Err.(type) {
 			// Handle domain errors
