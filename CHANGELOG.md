@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.5.1](https://github.com/PChaparro/serpentarius/compare/b0c1cba21b6c7486705b3f8958427f43bf26fd8f..v0.5.1) - 2025-05-25
+#### Bug Fixes
+- **(pdf)** check file existence in S3 using HeadObject instead of GET request (#13) - ([b0c1cba](https://github.com/PChaparro/serpentarius/commit/b0c1cba21b6c7486705b3f8958427f43bf26fd8f)) - Pedro Chaparro
+
+- - -
+
 ## [v0.5.0](https://github.com/PChaparro/serpentarius/compare/3b02b9b29d4e8e65c80535ab1d5f3b7228296b01..v0.5.0) - 2025-05-25
 #### Features
 - **(pdf)** automatically close idle pages and browsers (#10) - ([3b02b9b](https://github.com/PChaparro/serpentarius/commit/3b02b9b29d4e8e65c80535ab1d5f3b7228296b01)) - Pedro Chaparro
