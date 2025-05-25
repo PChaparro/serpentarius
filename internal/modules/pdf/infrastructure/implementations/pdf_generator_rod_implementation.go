@@ -46,12 +46,11 @@ type PageWithBrowser struct {
 // PageWithTimeout extends PageWithBrowser to include timeout management.
 // This structure is used to track pages and their activity for dynamic resource management.
 type PageWithTimeout struct {
-	Page      *rod.Page    // The browser page instance for rendering content
-	Browser   *rod.Browser // The parent browser instance that owns this page
-	LastUsed  time.Time    // Timestamp when the page was last returned to the pool
-	Timer     *time.Timer  // Timer to track inactivity and trigger cleanup
-	InUse     bool         // Whether this page is currently being used
-	BrowserID string       // Unique identifier for the browser
+	PageWithBrowser
+	LastUsed  time.Time   // Timestamp when the page was last returned to the pool
+	Timer     *time.Timer // Timer to track inactivity and trigger cleanup
+	InUse     bool        // Whether this page is currently being used
+	BrowserID string      // Unique identifier for the browser
 }
 
 // BrowserInfo tracks information about a browser instance
@@ -142,8 +141,10 @@ func (p *PDFGeneratorRod) createPage(browserInfo *BrowserInfo) (*PageWithTimeout
 
 	// Create PageWithTimeout
 	pwt := &PageWithTimeout{
-		Page:      page,
-		Browser:   browserInfo.Browser,
+		PageWithBrowser: PageWithBrowser{
+			Page:    page,
+			Browser: browserInfo.Browser,
+		},
 		LastUsed:  time.Now(),
 		InUse:     false,
 		BrowserID: browserInfo.ID,
