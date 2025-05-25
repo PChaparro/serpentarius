@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
+	"time"
+
+	"slices"
 
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	sharedInfrastructure "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
@@ -28,6 +31,9 @@ var (
 
 	// MaxPagesPerBrowser defines the maximum number of pages per browser instance
 	MaxPagesPerBrowser = sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
+
+	// PageIdleTimeout defines how long a page can remain idle before being closed
+	PageIdleTimeout = time.Duration(sharedInfrastructure.GetEnvironment().MaxChromiumTabIdleSeconds) * time.Second
 )
 
 // PageWithBrowser associates a Rod Page with its parent Browser instance.
@@ -37,14 +43,32 @@ type PageWithBrowser struct {
 	Browser *rod.Browser // The parent browser instance that owns this page
 }
 
+// PageWithTimeout extends PageWithBrowser to include timeout management.
+// This structure is used to track pages and their activity for dynamic resource management.
+type PageWithTimeout struct {
+	PageWithBrowser
+	Timer     *time.Timer // Timer to track inactivity and trigger cleanup
+	InUse     bool        // Whether this page is currently being used
+	BrowserID string      // Unique identifier for the browser
+}
+
+// BrowserInfo tracks information about a browser instance
+type BrowserInfo struct {
+	Browser   *rod.Browser       // The browser instance
+	PageCount int                // Current number of pages (tabs) in this browser
+	Pages     []*PageWithTimeout // References to pages created with this browser
+	ID        string             // Unique identifier for this browser
+}
+
 // PDFGeneratorRod implements PDF generation functionality using the Rod library
-// to control headless Chrome browsers. It maintains a pool of browser instances and pages
-// to optimize resource usage and improve performance with concurrent PDF generation tasks.
+// to control headless Chrome browsers. It dynamically manages browser and page resources,
+// creating them on-demand and cleaning them up after periods of inactivity.
 type PDFGeneratorRod struct {
-	pagePool    chan *PageWithBrowser // Pool of available browser pages for PDF generation
-	mutex       sync.Mutex            // Mutex to protect concurrent access to the generator state
-	initialized bool                  // Flag indicating if the generator has been initialized
-	browsers    []*rod.Browser        // List of browser instances managed by this generator
+	mutex          sync.Mutex              // Mutex to protect concurrent access to the generator state
+	browsers       map[string]*BrowserInfo // Map of browser instances by their unique IDs
+	availablePages []*PageWithTimeout      // List of available pages
+	waitingQueue   []chan *PageWithTimeout // Channels for clients waiting for a page
+	pageWaitGroup  sync.WaitGroup          // Used to track when pages are being used
 }
 
 // Global singleton instance and initialization control
@@ -58,8 +82,11 @@ var pdfGeneratorOnce sync.Once
 // managing the browser pool across the application.
 func GetPDFGeneratorRod() *PDFGeneratorRod {
 	pdfGeneratorOnce.Do(func() {
-		pdfGeneratorInstance = &PDFGeneratorRod{}
-		pdfGeneratorInstance.Initialize()
+		pdfGeneratorInstance = &PDFGeneratorRod{
+			browsers:       make(map[string]*BrowserInfo),
+			availablePages: make([]*PageWithTimeout, 0),
+			waitingQueue:   make([]chan *PageWithTimeout, 0),
+		}
 
 		// Set up a finalizer to clean up resources when the generator is garbage collected
 		runtime.SetFinalizer(pdfGeneratorInstance, func(p *PDFGeneratorRod) {
@@ -70,97 +97,310 @@ func GetPDFGeneratorRod() *PDFGeneratorRod {
 	return pdfGeneratorInstance
 }
 
-// Initialize sets up the browser pool and page pool for PDF generation.
-// It creates multiple browser instances and initializes pages for each browser,
-// adding them to the page pool for future use. This method is thread-safe
-// and will only initialize the generator once, regardless of how many times it's called.
-func (p *PDFGeneratorRod) Initialize() {
+// createBrowser launches a new browser instance and adds it to the pool
+func (p *PDFGeneratorRod) createBrowser() (*BrowserInfo, error) {
+	// Launch a new browser instance with optimized settings for headless PDF generation
+	launcherURL := launcher.New().
+		Bin(sharedInfrastructure.GetEnvironment().ChromiumBinaryPath). // Use the configured Chromium binary
+		Headless(true).                                                // Run in headless mode (no UI)
+		Leakless(true).                                                // Ensure process cleanup on unexpected termination
+		Set("disable-gpu", "1").                                       // Disable GPU acceleration
+		Set("disable-dev-shm-usage", "1").                             // Avoid using shared memory
+		Set("disable-extensions", "1").                                // Disable browser extensions
+		MustLaunch()
+
+	// Connect to the launched browser
+	browser := rod.New().ControlURL(launcherURL).MustConnect()
+
+	// Generate a unique ID for this browser
+	browserID := sharedInfrastructure.GenerateXID()
+
+	// Create browser info
+	info := &BrowserInfo{
+		Browser:   browser,
+		PageCount: 0,
+		Pages:     make([]*PageWithTimeout, 0),
+		ID:        browserID,
+	}
+
+	// Store in browsers map
+	p.browsers[browserID] = info
+
+	sharedInfrastructure.GetLogger().
+		WithField("browser_id", browserID).
+		Info("Created new browser instance")
+
+	return info, nil
+}
+
+// createPage creates a new page in the given browser
+func (p *PDFGeneratorRod) createPage(browserInfo *BrowserInfo) (*PageWithTimeout, error) {
+	// Create a new incognito page
+	page := browserInfo.Browser.MustIncognito().MustPage()
+
+	// Create PageWithTimeout
+	pwt := &PageWithTimeout{
+		PageWithBrowser: PageWithBrowser{
+			Page:    page,
+			Browser: browserInfo.Browser,
+		},
+		InUse:     false,
+		BrowserID: browserInfo.ID,
+	}
+
+	// Add to browser's pages
+	browserInfo.Pages = append(browserInfo.Pages, pwt)
+	browserInfo.PageCount++
+
+	sharedInfrastructure.GetLogger().
+		WithField("browser_id", browserInfo.ID).
+		Info("Created new page")
+
+	return pwt, nil
+}
+
+// findOrCreateAvailablePage finds an available page or creates a new one if needed
+func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	// Skip initialization if already done
-	if p.initialized {
-		return
+	// Check if there are available pages already
+	if len(p.availablePages) > 0 {
+		// Take the first available page
+		page := p.availablePages[0]
+		p.availablePages = p.availablePages[1:]
+
+		// Stop the timer if it's running
+		if page.Timer != nil {
+			page.Timer.Stop()
+		}
+
+		page.InUse = true
+		return page, nil
 	}
 
-	// Determine the optimal number of browsers based on system resources,
-	// but never exceed the defined maximum
-	numBrowsers := min(runtime.GOMAXPROCS(0), MaxBrowsers)
+	// Need to create a new page
 
-	// Create the page pool channel with capacity for all pages across all browsers
-	p.pagePool = make(chan *PageWithBrowser, numBrowsers*MaxPagesPerBrowser)
+	// First, see if we have any browser with capacity for a new page
+	for _, browserInfo := range p.browsers {
+		if browserInfo.PageCount < MaxPagesPerBrowser {
+			// This browser can take another page
+			page, err := p.createPage(browserInfo)
+			if err != nil {
+				return nil, err
+			}
 
-	// Create and configure each browser instance
-	for i := 0; i < numBrowsers; i++ {
-		// Launch a new browser instance with optimized settings for headless PDF generation
-		launcherURL := launcher.New().
-			Bin(sharedInfrastructure.GetEnvironment().ChromiumBinaryPath). // Use the configured Chromium binary
-			Headless(true).                                                // Run in headless mode (no UI)
-			Leakless(true).                                                // Ensure process cleanup on unexpected termination
-			Set("disable-gpu", "1").                                       // Disable GPU acceleration
-			Set("disable-dev-shm-usage", "1").                             // Avoid using shared memory
-			Set("disable-extensions", "1").                                // Disable browser extensions
-			MustLaunch()
-
-		// Connect to the launched browser
-		browser := rod.New().ControlURL(launcherURL).MustConnect()
-		p.browsers = append(p.browsers, browser)
-
-		// Create pages for this browser and add them to the page pool
-		for j := 0; j < MaxPagesPerBrowser; j++ {
-			page := browser.MustIncognito().MustPage() // Use incognito for isolation
-			p.pagePool <- &PageWithBrowser{Page: page, Browser: browser}
+			page.InUse = true
+			return page, nil
 		}
 	}
 
-	p.initialized = true
+	// No browser with capacity, need to create a new browser if allowed
+	if len(p.browsers) < MaxBrowsers {
+		browserInfo, err := p.createBrowser()
+		if err != nil {
+			return nil, err
+		}
 
-	// Log initialization details
-	sharedInfrastructure.GetLogger().
-		WithField("browsers", numBrowsers).
-		WithField("pages_total", numBrowsers*MaxPagesPerBrowser).
-		Info("PDF generator page pool initialized")
+		// Create a page in this new browser
+		page, err := p.createPage(browserInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		page.InUse = true
+		return page, nil
+	}
+
+	// All browsers are at capacity and we can't create more
+	// Create a channel to receive a page when one becomes available
+	pageChannel := make(chan *PageWithTimeout, 1)
+	p.waitingQueue = append(p.waitingQueue, pageChannel)
+
+	// Release the lock while waiting
+	p.mutex.Unlock()
+	page := <-pageChannel
+	p.mutex.Lock()
+
+	return page, nil
 }
 
-// RequestPage retrieves an available page from the page pool.
-// This method will block until a page becomes available if all pages are currently in use.
+// startPageTimer starts a timer to close the page after inactivity
+func (p *PDFGeneratorRod) startPageTimer(page *PageWithTimeout) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	// Stop existing timer if any
+	if page.Timer != nil {
+		page.Timer.Stop()
+	}
+
+	// Start a new timer
+	page.Timer = time.AfterFunc(PageIdleTimeout, func() {
+		p.closeIdlePage(page)
+	})
+}
+
+// closeIdlePage closes a page that has been idle for too long
+func (p *PDFGeneratorRod) closeIdlePage(page *PageWithTimeout) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	// Make sure the page is still in our pool and not in use
+	if page.InUse {
+		return
+	}
+
+	// Find the page in the available list
+	foundIdx := -1
+	for idx, availablePage := range p.availablePages {
+		if availablePage == page {
+			foundIdx = idx
+			break
+		}
+	}
+
+	if foundIdx != -1 {
+		// Remove from available pages
+		p.availablePages = slices.Delete(p.availablePages, foundIdx, foundIdx+1)
+
+		// Close the page
+		page.Page.MustClose()
+
+		// Update browser info
+		browserInfo := p.browsers[page.BrowserID]
+		browserInfo.PageCount--
+
+		// Remove from browser's pages list
+		for idx, browserPage := range browserInfo.Pages {
+			if browserPage == page {
+				browserInfo.Pages = slices.Delete(browserInfo.Pages, idx, idx+1)
+				break
+			}
+		}
+
+		// If this was the last page, close the browser too
+		if browserInfo.PageCount == 0 {
+			browserInfo.Browser.MustClose()
+			delete(p.browsers, page.BrowserID)
+			sharedInfrastructure.GetLogger().
+				WithField("browser_id", page.BrowserID).
+				Info("Closed idle browser instance")
+		}
+
+		sharedInfrastructure.GetLogger().
+			WithField("browser_id", page.BrowserID).
+			Info("Closed idle page")
+	}
+}
+
+// RequestPage retrieves an available page or creates a new one.
+// This method will block if all allowed resources are in use until a page becomes available.
 // The caller is responsible for returning the page to the pool after use.
 func (p *PDFGeneratorRod) RequestPage() *PageWithBrowser {
-	return <-p.pagePool
+	p.pageWaitGroup.Add(1)
+
+	// Get a page (available or new)
+	page, err := p.findOrCreateAvailablePage()
+	if err != nil {
+		sharedInfrastructure.GetLogger().WithError(err).Error("Failed to get page")
+		p.pageWaitGroup.Done()
+		return nil
+	}
+
+	// Convert to the interface expected by existing code
+	return &PageWithBrowser{
+		Page:    page.Page,
+		Browser: page.Browser,
+	}
 }
 
-// ReturnPage returns a previously requested page back to the page pool,
-// making it available for future use by other operations.
+// ReturnPage returns a page to the pool and starts its inactivity timer.
 // This should be called after a page is no longer needed to prevent resource leaks.
 func (p *PDFGeneratorRod) ReturnPage(pwb *PageWithBrowser) {
-	p.pagePool <- pwb
+	defer p.pageWaitGroup.Done()
+	p.mutex.Lock()
+
+	// Find the corresponding PageWithTimeout
+	var page *PageWithTimeout
+	for _, browserInfo := range p.browsers {
+		for _, p := range browserInfo.Pages {
+			if p.Page == pwb.Page {
+				page = p
+				break
+			}
+		}
+		if page != nil {
+			break
+		}
+	}
+
+	// If the page is not found, just close it
+	if page == nil {
+		pwb.Page.MustClose()
+		p.mutex.Unlock()
+		return
+	}
+
+	// Mark as not in use
+	page.InUse = false
+
+	// Check if anyone is waiting for a page
+	if len(p.waitingQueue) > 0 {
+		// Give the page directly to the first waiter
+		ch := p.waitingQueue[0]
+		p.waitingQueue = p.waitingQueue[1:]
+
+		page.InUse = true
+		p.mutex.Unlock()
+
+		ch <- page
+	} else {
+		// No one waiting, add to available pages
+		p.availablePages = append(p.availablePages, page)
+		p.mutex.Unlock()
+
+		// Start the inactivity timer
+		p.startPageTimer(page)
+	}
 }
 
 // ReleaseBrowserPool cleans up all browser resources managed by this generator.
 // It closes all browser instances and releases associated resources.
 // This method is thread-safe and idempotent, so it's safe to call multiple times.
 func (p *PDFGeneratorRod) ReleaseBrowserPool() {
+	// Wait for all pages to finish processing before cleaning up
+	p.pageWaitGroup.Wait()
+
+	// Lock to ensure no concurrent access while cleaning up
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	// Skip if not initialized
-	if !p.initialized {
-		return
+	// Close all browsers
+	for id, browserInfo := range p.browsers {
+		// Stop all timers
+		for _, page := range browserInfo.Pages {
+			if page.Timer != nil {
+				page.Timer.Stop()
+			}
+			// Close each page
+			page.Page.MustClose()
+		}
+
+		// Close the browser
+		browserInfo.Browser.MustClose()
+		delete(p.browsers, id)
 	}
 
-	// Close the page pool channel to prevent further page requests
-	close(p.pagePool)
+	// Clear pages
+	p.availablePages = make([]*PageWithTimeout, 0)
 
-	// Close each browser instance
-	for _, browser := range p.browsers {
-		browser.MustClose()
+	// Clear waiting queue and signal closure
+	for _, ch := range p.waitingQueue {
+		close(ch)
 	}
+	p.waitingQueue = make([]chan *PageWithTimeout, 0)
 
-	// Reset the state to allow for potential re-initialization
-	p.browsers = nil
-	p.initialized = false
-
-	// Log the cleanup
 	sharedInfrastructure.GetLogger().Info("PDF generator browser pool cleaned up")
 }
 
@@ -333,11 +573,6 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 // This method handles initializing the generator if needed and coordinates
 // the parallel generation of multiple PDF items.
 func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader, error) {
-	// Ensure generator is initialized
-	if !p.initialized {
-		p.Initialize()
-	}
-
 	// Prepare storage for individual PDF readers
 	readers := make([]io.Reader, len(request.Items))
 
