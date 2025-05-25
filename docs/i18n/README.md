@@ -78,7 +78,7 @@ docker run -p 3000:3000 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
   -e CHROMIUM_BINARY_PATH=/usr/bin/chromium \
   -e MAX_CHROMIUM_BROWSERS=1 \
   -e MAX_CHROMIUM_TABS_PER_BROWSER=4 \
-  -e MAX_IDLE_SECONDS=30 \
+  -e MAX_CHROMIUM_TAB_IDLE_SECONDS=30 \
   -e ENVIRONMENT=production \
   serpentarius
 ```
@@ -101,7 +101,7 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 | `CHROMIUM_BINARY_PATH`          | Ruta al binario de Chromium                                            | `/usr/bin/chromium`                                                                            |
 | `MAX_CHROMIUM_BROWSERS`         | Número máximo de navegadores Chromium concurrentes                     | `1`                                                                                            |
 | `MAX_CHROMIUM_TABS_PER_BROWSER` | Número máximo de pestañas por navegador Chromium                       | `4`                                                                                            |
-| `MAX_IDLE_SECONDS`              | Segundos máximos que una página puede estar inactiva antes de cerrarse | `30`                                                                                           |
+| `MAX_CHROMIUM_TAB_IDLE_SECONDS` | Segundos máximos que una página puede estar inactiva antes de cerrarse | `30`                                                                                           |
 | `ENVIRONMENT`                   | Entorno de ejecución (development/production)                          | `development`                                                                                  |
 
 Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.yml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.

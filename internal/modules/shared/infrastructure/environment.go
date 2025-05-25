@@ -16,30 +16,30 @@ const (
 
 // EnvironmentSpec holds the configuration for the application environment.
 type EnvironmentSpec struct {
-	Environment string `split_words:"true" default:"development"`
+	Environment string `split_words:"true" default:"development"` // App environment (development/production)
 
 	// Binaries
-	ChromiumBinaryPath string `split_words:"true" default:"/usr/bin/chromium-browser"`
+	ChromiumBinaryPath string `split_words:"true" default:"/usr/bin/chromium-browser"` // Path to Chromium binary
 
 	// Concurrency
-	MaxChromiumBrowsers       int `split_words:"true" default:"1"`
-	MaxChromiumTabsPerBrowser int `split_words:"true" default:"4"`
-	MaxIdleSeconds            int `split_words:"true" default:"30"`
+	MaxChromiumBrowsers       int `split_words:"true" default:"1"`  // Max concurrent Chromium browsers
+	MaxChromiumTabsPerBrowser int `split_words:"true" default:"4"`  // Max tabs per browser
+	MaxChromiumTabIdleSeconds int `split_words:"true" default:"30"` // Max seconds a tab can be idle
 
 	// AWS S3
-	AwsS3EndpointURL   string `split_words:"true" default:"https://s3.amazonaws.com"`
-	AwsAccessKeyID     string `required:"true" split_words:"true"`
-	AwsSecretAccessKey string `required:"true" split_words:"true"`
-	AwsRegion          string `split_words:"true" default:"us-east-1"`
+	AwsS3EndpointURL   string `split_words:"true" default:"https://s3.amazonaws.com"` // S3 endpoint URL
+	AwsAccessKeyID     string `required:"true" split_words:"true"`                    // S3 access key
+	AwsSecretAccessKey string `required:"true" split_words:"true"`                    // S3 secret key
+	AwsRegion          string `split_words:"true" default:"us-east-1"`                // S3 region
 
 	// Redis
-	RedisHost     string `required:"true" split_words:"true"`
-	RedisPort     string `split_words:"true" default:"6379"`
-	RedisPassword string `required:"true" split_words:"true"`
-	RedisDB       int    `split_words:"true" default:"0"`
+	RedisHost     string `required:"true" split_words:"true"` // Redis host
+	RedisPort     string `split_words:"true" default:"6379"`  // Redis port
+	RedisPassword string `required:"true" split_words:"true"` // Redis password
+	RedisDB       int    `split_words:"true" default:"0"`     // Redis DB number
 
 	// Authentication
-	AuthSecret string `required:"true" split_words:"true"`
+	AuthSecret string `required:"true" split_words:"true"` // Secret for JWT auth
 }
 
 var (

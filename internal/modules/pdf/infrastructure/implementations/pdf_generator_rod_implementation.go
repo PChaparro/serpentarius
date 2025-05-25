@@ -33,7 +33,7 @@ var (
 	MaxPagesPerBrowser = sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
 
 	// PageIdleTimeout defines how long a page can remain idle before being closed
-	PageIdleTimeout = time.Duration(sharedInfrastructure.GetEnvironment().MaxIdleSeconds) * time.Second
+	PageIdleTimeout = time.Duration(sharedInfrastructure.GetEnvironment().MaxChromiumTabIdleSeconds) * time.Second
 )
 
 // PageWithBrowser associates a Rod Page with its parent Browser instance.
