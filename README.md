@@ -10,6 +10,10 @@
 
 Serpentarius (aka "Secretary Bird") is a REST microservice that generates PDF documents from HTML templates for your projects.
 
+## Translations 🌐
+
+[English](README.md) | [Español](docs/i18n/README.md) |
+
 ## What problems does Serpentarius solve? 🤔
 
 Generating PDFs from HTML is a common practice due to its flexibility (you can create almost any design using HTML and CSS). However, integrating this functionality into each project presents several challenges:

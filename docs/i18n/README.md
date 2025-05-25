@@ -10,6 +10,10 @@
 
 Serpentarius (Alias "Pájaro Secretario") es un microservicio REST que genera documentos PDF a partir de plantillas HTML para tus proyectos.
 
+## Traducciones 🌐
+
+[English](../../README.md) | [Español](README.md) |
+
 ## ¿Qué soluciona Serpentarius? 🤔
 
 Generar PDFs a partir de HTML es una práctica común por la flexibilidad que ofrece (puedes crear casi cualquier diseño usando HTML y CSS). Sin embargo, integrar esta funcionalidad en cada proyecto presenta varios retos:
