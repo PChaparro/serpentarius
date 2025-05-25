@@ -17,6 +17,7 @@ import (
 
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	sharedInfrastructure "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
+	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
@@ -126,7 +127,7 @@ func (p *PDFGeneratorRod) createBrowser() (*BrowserInfo, error) {
 	// Store in browsers map
 	p.browsers[browserID] = info
 
-	sharedInfrastructure.GetLogger().
+	sharedUtilities.GetLogger().
 		WithField("browser_id", browserID).
 		Info("Created new browser instance")
 
@@ -152,7 +153,7 @@ func (p *PDFGeneratorRod) createPage(browserInfo *BrowserInfo) (*PageWithTimeout
 	browserInfo.Pages = append(browserInfo.Pages, pwt)
 	browserInfo.PageCount++
 
-	sharedInfrastructure.GetLogger().
+	sharedUtilities.GetLogger().
 		WithField("browser_id", browserInfo.ID).
 		Info("Created new page")
 
@@ -187,6 +188,11 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 			// This browser can take another page
 			page, err := p.createPage(browserInfo)
 			if err != nil {
+				sharedUtilities.GetLogger().
+					WithField("browser_id", browserInfo.ID).
+					WithError(err).
+					Error("Failed to create page in existing browser")
+
 				return nil, err
 			}
 
@@ -199,12 +205,21 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 	if len(p.browsers) < MaxBrowsers {
 		browserInfo, err := p.createBrowser()
 		if err != nil {
+			sharedUtilities.GetLogger().
+				WithError(err).
+				Error("Failed to create new browser instance")
+
 			return nil, err
 		}
 
 		// Create a page in this new browser
 		page, err := p.createPage(browserInfo)
 		if err != nil {
+			sharedUtilities.GetLogger().
+				WithField("browser_id", browserInfo.ID).
+				WithError(err).
+				Error("Failed to create page in new browser")
+
 			return nil, err
 		}
 
@@ -283,12 +298,12 @@ func (p *PDFGeneratorRod) closeIdlePage(page *PageWithTimeout) {
 		if browserInfo.PageCount == 0 {
 			browserInfo.Browser.MustClose()
 			delete(p.browsers, page.BrowserID)
-			sharedInfrastructure.GetLogger().
+			sharedUtilities.GetLogger().
 				WithField("browser_id", page.BrowserID).
 				Info("Closed idle browser instance")
 		}
 
-		sharedInfrastructure.GetLogger().
+		sharedUtilities.GetLogger().
 			WithField("browser_id", page.BrowserID).
 			Info("Closed idle page")
 	}
@@ -303,7 +318,7 @@ func (p *PDFGeneratorRod) RequestPage() *PageWithBrowser {
 	// Get a page (available or new)
 	page, err := p.findOrCreateAvailablePage()
 	if err != nil {
-		sharedInfrastructure.GetLogger().WithError(err).Error("Failed to get page")
+		sharedUtilities.GetLogger().WithError(err).Error("Failed to get page")
 		p.pageWaitGroup.Done()
 		return nil
 	}
@@ -401,7 +416,7 @@ func (p *PDFGeneratorRod) ReleaseBrowserPool() {
 	}
 	p.waitingQueue = make([]chan *PageWithTimeout, 0)
 
-	sharedInfrastructure.GetLogger().Info("PDF generator browser pool cleaned up")
+	sharedUtilities.GetLogger().Info("PDF generator browser pool cleaned up")
 }
 
 // buildPDFOptions converts a configuration object from the domain DTO into Chrome's PDF print options.
@@ -486,6 +501,10 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 	// Create a temporary directory to store individual PDFs
 	tempDir, err := os.MkdirTemp("", "pdf_merge")
 	if err != nil {
+		sharedUtilities.GetLogger().
+			WithError(err).
+			Error("Failed to create temporary directory for PDF merge")
+
 		return nil, fmt.Errorf("error creating temporary directory: %w", err)
 	}
 	// Ensure cleanup of temporary files when function exits
@@ -511,6 +530,11 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 			// Create and write to the temporary file
 			f, err := os.Create(path)
 			if err != nil {
+				sharedUtilities.GetLogger().
+					WithError(err).
+					WithField("file_path", path).
+					Error("Failed to create temporary PDF file")
+
 				mu.Lock()
 				if processingErr == nil {
 					processingErr = err
@@ -554,12 +578,22 @@ func (p *PDFGeneratorRod) mergePDFs(readers []io.Reader) (io.Reader, error) {
 
 	// Merge all PDFs into a single file using pdfcpu library
 	if err := pdfProcessingAPI.MergeCreateFile(tempFilesNames, outputPath, false, pdfProcessingModel.NewDefaultConfiguration()); err != nil {
+		sharedUtilities.GetLogger().
+			WithError(err).
+			WithField("output_path", outputPath).
+			Error("Failed to merge PDF files")
+
 		return nil, err
 	}
 
 	// Read the merged PDF file
 	merged, err := os.ReadFile(outputPath)
 	if err != nil {
+		sharedUtilities.GetLogger().
+			WithError(err).
+			WithField("output_path", outputPath).
+			Error("Failed to read merged PDF file")
+
 		return nil, err
 	}
 
@@ -598,6 +632,11 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 			// Set the HTML content to the page
 			err := pwb.Page.SetDocumentContent(pdfItem.BodyHTML)
 			if err != nil {
+				sharedUtilities.GetLogger().
+					WithError(err).
+					WithField("item_index", i).
+					Error("Failed to set document content for PDF generation")
+
 				mu.Lock()
 				if processingErr == nil {
 					processingErr = err
@@ -622,6 +661,11 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 			// Generate the PDF from the page
 			pdf, err := pwb.Page.PDF(opts)
 			if err != nil {
+				sharedUtilities.GetLogger().
+					WithError(err).
+					WithField("item_index", i).
+					Error("Failed to generate PDF from page content")
+
 				mu.Lock()
 				if processingErr == nil {
 					processingErr = err

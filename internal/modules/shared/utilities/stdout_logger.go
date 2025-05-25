@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"os"
 	"sync"
 
 	"go.uber.org/zap"
@@ -20,10 +21,13 @@ var (
 // GetLogger returns the singleton instance of Logger
 func GetLogger() *Logger {
 	once.Do(func() {
+		runtimeEnvironment := os.Getenv("ENVIRONMENT")
+		isProduction := runtimeEnvironment == "production"
+
 		// Set the log level based on the environment variable
 		var logLevel zapcore.Level
 
-		if GetEnvironment().Environment == ENVIRONMENT_PRODUCTION {
+		if isProduction {
 			logLevel = zapcore.InfoLevel
 		} else {
 			logLevel = zapcore.DebugLevel

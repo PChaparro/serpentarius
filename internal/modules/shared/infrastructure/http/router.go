@@ -16,11 +16,13 @@ var moduleRegistries = []RouterRegistry{
 
 // RouterRegistry registers routes of all modules
 func RegisterRoutes() {
-	router := gin.Default()
-
+	// Set Gin mode based on the environment
 	if infrastructure.GetEnvironment().Environment == infrastructure.ENVIRONMENT_PRODUCTION {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	// Start the router
+	router := gin.Default()
 
 	// Register global middlewares
 	router.Use(sharedMiddlewares.ErrorHandlerMiddleware())
