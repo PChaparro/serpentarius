@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v0.5.0](https://github.com/PChaparro/serpentarius/compare/3b02b9b29d4e8e65c80535ab1d5f3b7228296b01..v0.5.0) - 2025-05-25
+#### Features
+- **(pdf)** automatically close idle pages and browsers (#10) - ([3b02b9b](https://github.com/PChaparro/serpentarius/commit/3b02b9b29d4e8e65c80535ab1d5f3b7228296b01)) - Pedro Chaparro
+
+- - -
+
 ## [v0.4.0](https://github.com/PChaparro/serpentarius/compare/30dd12bf60ebb614c970cbc9e8e12123cf38cefc..v0.4.0) - 2025-05-18
 #### Features
 - authenticate with http headers (#7) - ([8800909](https://github.com/PChaparro/serpentarius/commit/88009095568f18e62de2112b456c249f0f7b43d6)) - Pedro Chaparro
