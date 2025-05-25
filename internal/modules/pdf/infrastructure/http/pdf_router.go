@@ -24,7 +24,6 @@ func (pr *PDFRouter) RegisterRoutes(r *gin.RouterGroup) {
 		CloudStorage:    sharedImplementations.GetS3CloudStorage(),
 		URLCacheStorage: sharedImplementations.GetRedisCacheStorage(),
 		HashGenerator:   sharedImplementations.GetXxHashGenerator(),
-		Fetcher:         sharedImplementations.GetNativeFetcher(),
 	}
 	generatePDFReturningURLController := &controllers.GeneratePDFReturningURLController{
 		UseCase: generatePDFReturningURLUseCase,

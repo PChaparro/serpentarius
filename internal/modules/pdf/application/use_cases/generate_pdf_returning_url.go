@@ -7,7 +7,7 @@ import (
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/definitions"
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	sharedDefinitions "github.com/PChaparro/serpentarius/internal/modules/shared/domain/definitions"
-	sharedInfrastructure "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
+	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
 )
 
 // GeneratePDFReturningURLUseCase is the use case for generating a PDF and returning its public URL.
@@ -20,8 +20,6 @@ type GeneratePDFReturningURLUseCase struct {
 	URLCacheStorage sharedDefinitions.UrlCacheStorage
 	// HashGenerator is the interface for generating hashes
 	HashGenerator sharedDefinitions.HashGenerator
-	// Fetcher is the interface for fetching content from URLs
-	Fetcher sharedDefinitions.Fetcher
 }
 
 // Execute generates a PDF based on the provided request and returns the URL of the generated PDF.
@@ -46,23 +44,29 @@ func (u *GeneratePDFReturningURLUseCase) Execute(
 		return "", fmt.Errorf("error checking cache for URL: %w", err)
 	}
 
-	// If the URL is cached, check if it is still valid and return it
+	// If the URL is cached, check if the file exists in cloud storage and return it
 	if cachedURL != nil {
 		url := *cachedURL
 
-		// Check if the URL is still valid
-		_, err := u.Fetcher.Get(sharedDefinitions.GetRequest{
-			URL: url,
+		// Check if the file exists in cloud storage
+		fileExists, err := u.CloudStorage.FileExists(sharedDefinitions.FileExistsRequest{
+			FileFolder: request.Config.Directory,
+			FilePath:   request.Config.FileName,
 		})
-		if err == nil {
-			sharedInfrastructure.GetLogger().
+		if err != nil {
+			return "", fmt.Errorf("error checking file existence in cloud storage: %w", err)
+		}
+
+		// If the file exists, return the cached URL
+		if fileExists {
+			sharedUtilities.GetLogger().
 				WithField("url", url).
-				Info("Cache HIT for URL")
+				Info("Cache HIT for URL (file exists in cloud storage)")
 
 			return url, nil
 		}
 
-		// If the URL is not valid, remove it from the cache
+		// If the file does not exist, remove it from the cache
 		err = u.URLCacheStorage.Delete(hash)
 		if err != nil {
 			return "", fmt.Errorf("error deleting invalid URL from cache: %w", err)
