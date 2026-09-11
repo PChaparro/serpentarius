@@ -5,18 +5,18 @@ import (
 	"github.com/ysmood/gson"
 )
 
-// PageMargin represents the margins of the PDF page
+// PageMargin represents the margins of the PDF page in inches
 type PageMargin struct {
-	Top    *float64 `json:"top,omitempty" validate:"omitempty,min=0"`
-	Bottom *float64 `json:"bottom,omitempty" validate:"omitempty,min=0"`
-	Left   *float64 `json:"left,omitempty" validate:"omitempty,min=0"`
-	Right  *float64 `json:"right,omitempty" validate:"omitempty,min=0"`
+	TopInches    *float64 `json:"topInches,omitempty" validate:"omitempty,min=0"`
+	BottomInches *float64 `json:"bottomInches,omitempty" validate:"omitempty,min=0"`
+	LeftInches   *float64 `json:"leftInches,omitempty" validate:"omitempty,min=0"`
+	RightInches  *float64 `json:"rightInches,omitempty" validate:"omitempty,min=0"`
 }
 
 // PageRange represents the range of pages to print
 type PageRange struct {
-	Start int `json:"start,omitempty" validate:"omitempty,min=1"`
-	End   int `json:"end,omitempty" validate:"omitempty,min=1,gtefield=Start"`
+	Start int `json:"start" validate:"required,min=1"`
+	End   int `json:"end" validate:"required,min=1,gtefield=Start"`
 }
 
 // ItemConfig represents the configuration for each PDF element
@@ -27,7 +27,7 @@ type ItemConfig struct {
 	Scale               *float64    `json:"scale,omitempty" validate:"omitempty,min=0.1,max=2"`
 	Size                *string     `json:"size,omitempty" validate:"omitempty,oneof=letter legal tabloid ledger a0 a1 a2 a3 a4 a5 a6"`
 	Margin              *PageMargin `json:"margin,omitempty" validate:"omitempty"`
-	PageRanges          *PageRange  `json:"pageRanges,omitempty" validate:"omitempty"`
+	PageRange           *PageRange  `json:"pageRange,omitempty" validate:"omitempty"`
 	HeaderHTML          *string     `json:"headerHTML,omitempty"`
 	FooterHTML          *string     `json:"footerHTML,omitempty"`
 }
@@ -38,17 +38,17 @@ type PDFItem struct {
 	Config   *ItemConfig `json:"config,omitempty" validate:"omitempty"`
 }
 
-// GeneralConfig represents the general PDF configuration
-type GeneralConfig struct {
-	Bucket     string `json:"bucket" validate:"required"`
-	Key        string `json:"key" validate:"required"`
-	Expiration *int64 `json:"expiration,omitempty" validate:"omitempty,min=0"` // Expiration time in seconds
+// OutputConfig represents the output configuration of the generated PDF
+type OutputConfig struct {
+	Bucket   string `json:"bucket" validate:"required,s3bucket"`
+	Key      string `json:"key" validate:"required,s3key"`
+	CacheTTL *int64 `json:"cacheTTL,omitempty" validate:"omitempty,min=0"` // Cache TTL in seconds (0 = cache without expiry)
 }
 
 // GeneratePDFRequest represents the complete PDF generation request
 type GeneratePDFRequest struct {
-	Items  []PDFItem     `json:"items" validate:"required,dive"`
-	Config GeneralConfig `json:"config" validate:"required"`
+	Items  []PDFItem    `json:"items" validate:"required,dive"`
+	Output OutputConfig `json:"output" validate:"required"`
 }
 
 // getPageSizeFromString converts a string representation of a page size to a PageSize struct
@@ -122,18 +122,18 @@ func buildItemConfig(config *ItemConfig) *dto.ItemConfig {
 	// Handle Margin safely
 	if config.Margin != nil {
 		itemConfig.Margin = &dto.PageMargin{
-			Top:    config.Margin.Top,
-			Bottom: config.Margin.Bottom,
-			Left:   config.Margin.Left,
-			Right:  config.Margin.Right,
+			TopInches:    config.Margin.TopInches,
+			BottomInches: config.Margin.BottomInches,
+			LeftInches:   config.Margin.LeftInches,
+			RightInches:  config.Margin.RightInches,
 		}
 	}
 
-	// Handle PageRanges safely
-	if config.PageRanges != nil {
-		itemConfig.PageRanges = &dto.PageRange{
-			Start: config.PageRanges.Start,
-			End:   config.PageRanges.End,
+	// Handle PageRange safely
+	if config.PageRange != nil {
+		itemConfig.PageRange = &dto.PageRange{
+			Start: config.PageRange.Start,
+			End:   config.PageRange.End,
 		}
 	}
 
@@ -142,10 +142,16 @@ func buildItemConfig(config *ItemConfig) *dto.ItemConfig {
 
 // ToDTO converts the request to a PDFGenerationDTO that can be used by the use case
 func (r *GeneratePDFRequest) ToDTO() *dto.PDFGenerationDTO {
-	config := dto.GeneralConfig{
-		Bucket:     r.Config.Bucket,
-		Key:        r.Config.Key,
-		Expiration: r.Config.Expiration,
+	// Default to 0 (cache without expiry) when no cache TTL is provided
+	var cacheTTL int64
+	if r.Output.CacheTTL != nil {
+		cacheTTL = *r.Output.CacheTTL
+	}
+
+	output := dto.OutputConfig{
+		Bucket:   r.Output.Bucket,
+		Key:      r.Output.Key,
+		CacheTTL: cacheTTL,
 	}
 
 	items := make([]dto.PDFItem, len(r.Items))
@@ -159,6 +165,6 @@ func (r *GeneratePDFRequest) ToDTO() *dto.PDFGenerationDTO {
 
 	return &dto.PDFGenerationDTO{
 		Items:  items,
-		Config: config,
+		Output: output,
 	}
 }

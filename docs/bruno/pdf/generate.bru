@@ -26,12 +26,12 @@ body:json {
           "scale": 1,
           "size": "a4",
           "margin": {
-            "top": 1,
-            "bottom": 1,
-            "right": 1,
-            "left": 1
+            "topInches": 1,
+            "bottomInches": 1,
+            "rightInches": 1,
+            "leftInches": 1
           },
-          "pageRanges": {
+          "pageRange": {
             "start": 1,
             "end": 2
           },
@@ -40,10 +40,10 @@ body:json {
         }
       }
     ],
-    "config": {
+    "output": {
       "bucket": "serpentarius",
       "key": "simple.pdf",
-      "expiration": 0
+      "cacheTTL": 0
     }
   }
 }

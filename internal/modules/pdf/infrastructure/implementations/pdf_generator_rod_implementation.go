@@ -460,23 +460,23 @@ func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePri
 
 	// Configure page margins
 	if config.Margin != nil {
-		if config.Margin.Top != nil {
-			pdfOpts.MarginTop = config.Margin.Top
+		if config.Margin.TopInches != nil {
+			pdfOpts.MarginTop = config.Margin.TopInches
 		}
-		if config.Margin.Bottom != nil {
-			pdfOpts.MarginBottom = config.Margin.Bottom
+		if config.Margin.BottomInches != nil {
+			pdfOpts.MarginBottom = config.Margin.BottomInches
 		}
-		if config.Margin.Left != nil {
-			pdfOpts.MarginLeft = config.Margin.Left
+		if config.Margin.LeftInches != nil {
+			pdfOpts.MarginLeft = config.Margin.LeftInches
 		}
-		if config.Margin.Right != nil {
-			pdfOpts.MarginRight = config.Margin.Right
+		if config.Margin.RightInches != nil {
+			pdfOpts.MarginRight = config.Margin.RightInches
 		}
 	}
 
 	// Set page range to be printed
-	if config.PageRanges != nil {
-		pdfOpts.PageRanges = fmt.Sprintf("%d-%d", config.PageRanges.Start, config.PageRanges.End)
+	if config.PageRange != nil {
+		pdfOpts.PageRanges = fmt.Sprintf("%d-%d", config.PageRange.Start, config.PageRange.End)
 	}
 
 	// Set custom HTML for header and footer

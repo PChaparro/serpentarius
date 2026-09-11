@@ -9,12 +9,12 @@
         "scale": 100,
         "size": "a4",
         "margin": {
-          "top": -1.25,
-          "bottom": -0.5,
-          "right": -0.25,
-          "left": -0.25
+          "topInches": -1.25,
+          "bottomInches": -0.5,
+          "rightInches": -0.25,
+          "leftInches": -0.25
         },
-        "pageRanges": {
+        "pageRange": {
           "start": 5,
           "end": 1
         },
@@ -23,9 +23,9 @@
       }
     }
   ],
-  "config": {
+  "output": {
     "bucket": "serpentarius",
     "key": "sales-report-not-valid.pdf",
-    "expiration": 30
+    "cacheTTL": 30
   }
 }

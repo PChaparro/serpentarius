@@ -6,12 +6,12 @@ type PageSize struct {
 	Height *float64
 }
 
-// PageMargin represents the margins of the PDF page
+// PageMargin represents the margins of the PDF page in inches
 type PageMargin struct {
-	Top    *float64
-	Bottom *float64
-	Left   *float64
-	Right  *float64
+	TopInches    *float64
+	BottomInches *float64
+	LeftInches   *float64
+	RightInches  *float64
 }
 
 // PageRange represents the range of pages to print
@@ -28,7 +28,7 @@ type ItemConfig struct {
 	Scale               *float64
 	Size                *PageSize
 	Margin              *PageMargin
-	PageRanges          *PageRange
+	PageRange           *PageRange
 	HeaderHTML          *string
 	FooterHTML          *string
 }
@@ -39,17 +39,17 @@ type PDFItem struct {
 	Config   *ItemConfig
 }
 
-// GeneralConfig represents the general PDF configuration
-type GeneralConfig struct {
-	Bucket     string // Required field
-	Key        string // Required field
-	Expiration *int64
+// OutputConfig represents the output configuration of the generated PDF
+type OutputConfig struct {
+	Bucket   string // Required field
+	Key      string // Required field
+	CacheTTL int64  // Optional field, time in seconds for the cache entry to live (0 = cache without expiry)
 }
 
 // PDFGenerationDTO represents the complete PDF generation request
 type PDFGenerationDTO struct {
 	Items  []PDFItem
-	Config GeneralConfig
+	Output OutputConfig
 }
 
 // PDFGenerationResult represents the file reference of a generated PDF

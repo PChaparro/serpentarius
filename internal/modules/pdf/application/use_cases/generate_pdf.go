@@ -50,7 +50,7 @@ func (u *GeneratePDFUseCase) Execute(
 
 		// Check if the file exists in cloud storage
 		fileExists, err := u.CloudStorage.FileExists(sharedDefinitions.FileExistsRequest{
-			Bucket: request.Config.Bucket,
+			Bucket: request.Output.Bucket,
 			Key:    key,
 		})
 		if err != nil {
@@ -60,12 +60,12 @@ func (u *GeneratePDFUseCase) Execute(
 		// If the file exists, return the cached file reference
 		if fileExists {
 			sharedUtilities.GetLogger().
-				WithField("bucket", request.Config.Bucket).
+				WithField("bucket", request.Output.Bucket).
 				WithField("key", key).
 				Info("Cache HIT for key (file exists in cloud storage)")
 
 			return &dto.PDFGenerationResult{
-				Bucket: request.Config.Bucket,
+				Bucket: request.Output.Bucket,
 				Key:    key,
 			}, nil
 		}
@@ -86,8 +86,8 @@ func (u *GeneratePDFUseCase) Execute(
 	// Upload the PDF to cloud storage
 	uploadRequest := sharedDefinitions.UploadFileRequest{
 		FileReader:  pdfReader,
-		Bucket:      request.Config.Bucket,
-		Key:         request.Config.Key,
+		Bucket:      request.Output.Bucket,
+		Key:         request.Output.Key,
 		ContentType: "application/pdf",
 	}
 	key, err := u.CloudStorage.UploadFile(uploadRequest)
@@ -99,7 +99,7 @@ func (u *GeneratePDFUseCase) Execute(
 	cacheRequest := sharedDefinitions.SetPathCacheRequest{
 		Key:        hash,
 		Value:      key,
-		Expiration: *request.Config.Expiration,
+		Expiration: request.Output.CacheTTL,
 	}
 
 	err = u.PathCacheStorage.Set(cacheRequest)
@@ -109,7 +109,7 @@ func (u *GeneratePDFUseCase) Execute(
 
 	// Return the file reference of the uploaded PDF
 	return &dto.PDFGenerationResult{
-		Bucket: request.Config.Bucket,
+		Bucket: request.Output.Bucket,
 		Key:    key,
 	}, nil
 }

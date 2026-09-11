@@ -1,8 +1,10 @@
 package tests
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -105,6 +107,94 @@ func TestPostPDF_InvalidDocument(t *testing.T) {
 		validationErrorMsg, ok := validationError.(string)
 		assert.Truef(t, ok, "Element %d in 'errors' should be a string (got: %T)", validationErrorIndex, validationError)
 		assert.NotEmptyf(t, validationErrorMsg, "Element %d in 'errors' should not be empty (got: %v)", validationErrorIndex, validationErrorMsg)
+	}
+}
+
+// firstItemConfig returns the config object of the first item in the request body.
+func firstItemConfig(body map[string]any) map[string]any {
+	return body["items"].([]any)[0].(map[string]any)["config"].(map[string]any)
+}
+
+// TestPostPDF_InvalidBucketKeyAndPageRange tests that malformed output references
+// (bucket/key format) and partial page ranges are rejected with a 400 Bad Request.
+func TestPostPDF_InvalidBucketKeyAndPageRange(t *testing.T) {
+	router := sharedHTTP.RegisterRoutes()
+
+	bodyBytes, err := testUtilities.ReadFileFromTestsDataDirectory("valid-request.json")
+	if err != nil {
+		t.Fatalf("Could not read valid body file: %v", err)
+	}
+
+	testCases := []struct {
+		name   string
+		mutate func(body map[string]any)
+	}{
+		{
+			name: "Uppercase bucket",
+			mutate: func(body map[string]any) {
+				body["output"].(map[string]any)["bucket"] = "Serpentarius"
+			},
+		},
+		{
+			name: "Leading-slash key",
+			mutate: func(body map[string]any) {
+				body["output"].(map[string]any)["key"] = "/sales-report-valid.pdf"
+			},
+		},
+		{
+			name: "Overlong key",
+			mutate: func(body map[string]any) {
+				body["output"].(map[string]any)["key"] = strings.Repeat("a", 1025)
+			},
+		},
+		{
+			name: "PageRange without start",
+			mutate: func(body map[string]any) {
+				firstItemConfig(body)["pageRange"] = map[string]any{"end": 5}
+			},
+		},
+		{
+			name: "PageRange without end",
+			mutate: func(body map[string]any) {
+				firstItemConfig(body)["pageRange"] = map[string]any{"start": 5}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var body map[string]any
+			assert.NoError(t, json.Unmarshal(bodyBytes, &body), "Valid fixture should unmarshal into a JSON object")
+			tc.mutate(body)
+			mutated, err := json.Marshal(body)
+			assert.NoError(t, err, "Mutated body should marshal back to JSON")
+
+			w := testUtilities.PostToAPI(testUtilities.PostAPIRequest{
+				Router: router,
+				URL:    testConstants.GENERATE_PDF_ENDPOINT,
+				Body:   string(mutated),
+			})
+
+			// We expect a 400 Bad Request error for each invalid input
+			assert.Equalf(t, http.StatusBadRequest, w.Code, "Should return 400 Bad Request for case '%s' (got %d)", tc.name, w.Code)
+
+			// Parse and validate the JSON response, ensuring a non-empty 'errors' array of non-empty strings
+			respAny, err := testUtilities.ParseJSONResponse(w)
+			assert.NoError(t, err, "Response should be valid JSON")
+
+			resp, ok := respAny.(map[string]any)
+			assert.Truef(t, ok, "Response should be a JSON object (got: %T)", respAny)
+
+			errorsArr, ok := resp["errors"].([]any)
+			assert.Truef(t, ok, "Response should contain an 'errors' array (got: %v)", resp)
+			assert.NotEmptyf(t, errorsArr, "'errors' array should not be empty (got: %v)", errorsArr)
+
+			for validationErrorIndex, validationError := range errorsArr {
+				validationErrorMsg, ok := validationError.(string)
+				assert.Truef(t, ok, "Element %d in 'errors' should be a string (got: %T)", validationErrorIndex, validationError)
+				assert.NotEmptyf(t, validationErrorMsg, "Element %d in 'errors' should not be empty (got: %v)", validationErrorIndex, validationErrorMsg)
+			}
+		})
 	}
 }
 
