@@ -1,11 +1,11 @@
 meta {
-  name: generate-returning-url
+  name: generate
   type: http
   seq: 1
 }
 
 post {
-  url: {{BASE_URL}}/pdf/url
+  url: {{BASE_URL}}/pdf
   body: json
   auth: bearer
 }
@@ -41,9 +41,8 @@ body:json {
       }
     ],
     "config": {
-      "directory": "serpentarius",
-      "fileName": "sales-report.pdf",
-      "publicURLPrefix": "http://localhost:9000",
+      "bucket": "serpentarius",
+      "key": "simple.pdf",
       "expiration": 0
     }
   }

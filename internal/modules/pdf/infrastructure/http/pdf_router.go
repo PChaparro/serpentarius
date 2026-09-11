@@ -18,20 +18,21 @@ func (pr *PDFRouter) RegisterRoutes(r *gin.RouterGroup) {
 	// Register the PDF routes
 	pdfGroup := r.Group("/pdf")
 
-	// Generate PDF and return URL
-	generatePDFReturningURLUseCase := use_cases.GeneratePDFReturningURLUseCase{
-		PDFGenerator:    implementations.GetPDFGeneratorRod(),
-		CloudStorage:    sharedImplementations.GetS3CloudStorage(),
-		URLCacheStorage: sharedImplementations.GetRedisCacheStorage(),
-		HashGenerator:   sharedImplementations.GetXxHashGenerator(),
+	// Generate PDF and return its file reference
+	generatePDFUseCase := use_cases.GeneratePDFUseCase{
+		PDFGenerator:     implementations.GetPDFGeneratorRod(),
+		CloudStorage:     sharedImplementations.GetS3CloudStorage(),
+		PathCacheStorage: sharedImplementations.GetRedisCacheStorage(),
+		HashGenerator:    sharedImplementations.GetXxHashGenerator(),
 	}
-	generatePDFReturningURLController := &controllers.GeneratePDFReturningURLController{
-		UseCase: generatePDFReturningURLUseCase,
+	generatePDFController := &controllers.GeneratePDFController{
+		UseCase: generatePDFUseCase,
 	}
 	pdfGroup.POST(
-		"/url",
+		// Creates a PDF and returns its file reference (bucket/key).
+		"",
 		sharedMiddlewares.AuthMiddleware(),
-		sharedMiddlewares.RequestValidationMiddleware(requests.GeneratePDFReturningURLRequest{}),
-		generatePDFReturningURLController.Handle,
+		sharedMiddlewares.RequestValidationMiddleware(requests.GeneratePDFRequest{}),
+		generatePDFController.Handle,
 	)
 }

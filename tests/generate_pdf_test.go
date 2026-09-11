@@ -17,8 +17,8 @@ const (
 	MAX_DURATION_FOR_CACHE_HIT = 15 // milliseconds
 )
 
-// TestPostPDFUrl_ValidDocument tests the API with a valid document
-func TestPostPDFUrl_ValidDocument(t *testing.T) {
+// TestPostPDF_ValidDocument tests the API with a valid document
+func TestPostPDF_ValidDocument(t *testing.T) {
 	router := sharedHTTP.RegisterRoutes()
 
 	bodyBytes, err := testUtilities.ReadFileFromTestsDataDirectory("valid-request.json")
@@ -30,46 +30,50 @@ func TestPostPDFUrl_ValidDocument(t *testing.T) {
 	// The first request should generate the PDF, the second should hit the cache and be much faster.
 	var lastResponse *httptest.ResponseRecorder
 	var lastDuration time.Duration
-	var lastURL string
+	var lastKey string
 
 	for i := 1; i <= 2; i++ {
 		start := time.Now()
 		w := testUtilities.PostToAPI(testUtilities.PostAPIRequest{
 			Router: router,
-			URL:    testConstants.GENERATE_PDF_RETURNING_URL_ENDPOINT,
+			URL:    testConstants.GENERATE_PDF_ENDPOINT,
 			Body:   string(bodyBytes),
 		})
 		duration := time.Since(start)
 		assert.Equalf(t, http.StatusOK, w.Code, "Request #%d should return 200 with valid document (got %d)", i, w.Code)
 
-		// Parse and validate the JSON response, ensuring a 'url' field is present and not empty
+		// Parse and validate the JSON response, ensuring bucket/key fields are present and not empty
 		respAny, err := testUtilities.ParseJSONResponse(w)
 		assert.NoError(t, err, "Request #%d response should be valid JSON", i)
 
 		resp, ok := respAny.(map[string]any)
 		assert.Truef(t, ok, "Request #%d response should be a JSON object (got: %T)", i, respAny)
 
-		url, ok := resp["url"].(string)
-		assert.Truef(t, ok, "Request #%d response should contain a 'url' field (got: %v)", i, resp)
-		assert.NotEmptyf(t, url, "Request #%d response 'url' field should not be empty (got: %v)", i, url)
+		bucket, ok := resp["bucket"].(string)
+		assert.Truef(t, ok, "Request #%d response should contain a 'bucket' field (got: %v)", i, resp)
+		assert.NotEmptyf(t, bucket, "Request #%d response 'bucket' field should not be empty (got: %v)", i, resp)
 
-		// Second request should be faster because it hits the cache and return the same URL
+		key, ok := resp["key"].(string)
+		assert.Truef(t, ok, "Request #%d response should contain a 'key' field (got: %v)", i, resp)
+		assert.NotEmptyf(t, key, "Request #%d response 'key' field should not be empty (got: %v)", i, resp)
+
+		// Second request should be faster because it hits the cache and return the same key
 		shouldBeCached := lastResponse != nil
 		if shouldBeCached {
 			assert.Equalf(t, lastResponse.Body.String(), w.Body.String(), "Response #%d should be identical to previous (cache hit) (got: %s)", i, w.Body.String())
 			assert.Lessf(t, duration, lastDuration, "Request #%d should be faster than the first (cache) (got: %v vs %v)", i, duration, lastDuration)
 			assert.Lessf(t, int64(duration.Milliseconds()), int64(MAX_DURATION_FOR_CACHE_HIT), "Request #%d should be significantly faster (cache hit) (got: %d ms)", i, duration.Milliseconds())
-			assert.Equalf(t, lastURL, url, "Request #%d should return the same url as previous (cache hit) (got: %s)", i, url)
+			assert.Equalf(t, lastKey, key, "Request #%d should return the same key as previous (cache hit) (got: %s)", i, key)
 		}
 
 		lastResponse = w
 		lastDuration = duration
-		lastURL = url
+		lastKey = key
 	}
 }
 
-// TestPostPDFUrl_InvalidDocument tests the API with an invalid document
-func TestPostPDFUrl_InvalidDocument(t *testing.T) {
+// TestPostPDF_InvalidDocument tests the API with an invalid document
+func TestPostPDF_InvalidDocument(t *testing.T) {
 	router := sharedHTTP.RegisterRoutes()
 
 	bodyBytes, err := testUtilities.ReadFileFromTestsDataDirectory("not-valid-request.json")
@@ -79,7 +83,7 @@ func TestPostPDFUrl_InvalidDocument(t *testing.T) {
 
 	w := testUtilities.PostToAPI(testUtilities.PostAPIRequest{
 		Router: router,
-		URL:    testConstants.GENERATE_PDF_RETURNING_URL_ENDPOINT,
+		URL:    testConstants.GENERATE_PDF_ENDPOINT,
 		Body:   string(bodyBytes),
 	})
 
@@ -104,8 +108,8 @@ func TestPostPDFUrl_InvalidDocument(t *testing.T) {
 	}
 }
 
-// TestPostPDFUrl_AuthHeaderValidation tests the API when the Authorization header is missing or invalid
-func TestPostPDFUrl_AuthHeaderValidation(t *testing.T) {
+// TestPostPDF_AuthHeaderValidation tests the API when the Authorization header is missing or invalid
+func TestPostPDF_AuthHeaderValidation(t *testing.T) {
 	router := sharedHTTP.RegisterRoutes()
 
 	bodyBytes, err := testUtilities.ReadFileFromTestsDataDirectory("valid-request.json")
@@ -137,7 +141,7 @@ func TestPostPDFUrl_AuthHeaderValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := testUtilities.PostToAPI(testUtilities.PostAPIRequest{
 				Router: router,
-				URL:    testConstants.GENERATE_PDF_RETURNING_URL_ENDPOINT,
+				URL:    testConstants.GENERATE_PDF_ENDPOINT,
 				Body:   string(bodyBytes),
 				Auth:   tc.authOption,
 			})

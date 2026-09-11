@@ -40,14 +40,13 @@ type PDFItem struct {
 
 // GeneralConfig represents the general PDF configuration
 type GeneralConfig struct {
-	Directory       string `json:"directory" validate:"required"`
-	FileName        string `json:"fileName" validate:"required"`
-	PublicURLPrefix string `json:"publicURLPrefix,omitempty" validate:"required,http_url"`
-	Expiration      *int64 `json:"expiration,omitempty" validate:"omitempty,min=0"` // Expiration time in seconds
+	Bucket     string `json:"bucket" validate:"required"`
+	Key        string `json:"key" validate:"required"`
+	Expiration *int64 `json:"expiration,omitempty" validate:"omitempty,min=0"` // Expiration time in seconds
 }
 
-// GeneratePDFReturningURLRequest represents the complete PDF generation request
-type GeneratePDFReturningURLRequest struct {
+// GeneratePDFRequest represents the complete PDF generation request
+type GeneratePDFRequest struct {
 	Items  []PDFItem     `json:"items" validate:"required,dive"`
 	Config GeneralConfig `json:"config" validate:"required"`
 }
@@ -142,12 +141,11 @@ func buildItemConfig(config *ItemConfig) *dto.ItemConfig {
 }
 
 // ToDTO converts the request to a PDFGenerationDTO that can be used by the use case
-func (r *GeneratePDFReturningURLRequest) ToDTO() *dto.PDFGenerationDTO {
+func (r *GeneratePDFRequest) ToDTO() *dto.PDFGenerationDTO {
 	config := dto.GeneralConfig{
-		Directory:       r.Config.Directory,
-		FileName:        r.Config.FileName,
-		PublicURLPrefix: r.Config.PublicURLPrefix,
-		Expiration:      r.Config.Expiration,
+		Bucket:     r.Config.Bucket,
+		Key:        r.Config.Key,
+		Expiration: r.Config.Expiration,
 	}
 
 	items := make([]dto.PDFItem, len(r.Items))

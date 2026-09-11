@@ -3,7 +3,6 @@ package implementations
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -65,11 +64,11 @@ func createS3Client() *s3.Client {
 	return client
 }
 
-// UploadFile uploads a file to S3 and returns the URL
+// UploadFile uploads a file to S3 and returns its object key
 func (s *S3CloudStorage) UploadFile(request definitions.UploadFileRequest) (string, error) {
 	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(request.FileFolder),
-		Key:         aws.String(request.FilePath),
+		Bucket:      aws.String(request.Bucket),
+		Key:         aws.String(request.Key),
 		Body:        request.FileReader,
 		ContentType: aws.String(request.ContentType),
 	})
@@ -78,16 +77,15 @@ func (s *S3CloudStorage) UploadFile(request definitions.UploadFileRequest) (stri
 		return "", err
 	}
 
-	// Construct the public URL
-	publicURL := fmt.Sprintf("%s/%s/%s", request.PublicURLPrefix, request.FileFolder, request.FilePath)
-	return publicURL, nil
+	// Return the object key
+	return request.Key, nil
 }
 
 // FileExists checks if a file exists in the S3 bucket
 func (s *S3CloudStorage) FileExists(request definitions.FileExistsRequest) (bool, error) {
 	_, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
-		Bucket: aws.String(request.FileFolder),
-		Key:    aws.String(request.FilePath),
+		Bucket: aws.String(request.Bucket),
+		Key:    aws.String(request.Key),
 	})
 
 	if err != nil {

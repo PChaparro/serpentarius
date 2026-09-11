@@ -12,7 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisCacheStorage implements the UrlCacheStorage interface for Redis
+// RedisCacheStorage implements the PathCacheStorage interface for Redis
 type RedisCacheStorage struct {
 	client *redis.Client
 }
@@ -23,7 +23,7 @@ var (
 )
 
 // GetRedisCacheStorage returns a singleton instance of RedisCacheStorage
-func GetRedisCacheStorage() definitions.UrlCacheStorage {
+func GetRedisCacheStorage() definitions.PathCacheStorage {
 	redisOnce.Do(func() {
 		redisCacheStorage = &RedisCacheStorage{
 			client: createRedisClient(),
@@ -62,8 +62,8 @@ func createRedisClient() *redis.Client {
 	return client
 }
 
-// Set stores a key-value pair in the Redis cache with an optional expiration time
-func (r *RedisCacheStorage) Set(request definitions.SetURLCacheRequest) error {
+// Set stores a file path in the Redis cache with an optional expiration time
+func (r *RedisCacheStorage) Set(request definitions.SetPathCacheRequest) error {
 	ctx := context.Background()
 
 	// Set expiration time if provided

@@ -97,7 +97,7 @@ The project is organized into three main layers:
 A good example of the benefits of this architecture is our caching implementation:
 
 - Currently, we use Dragonfly (a Redis alternative) for caching, but the core application doesn't directly depend on it.
-- Instead, the domain layer defines a `UrlCacheStorage` interface with `Set`, `Get`, and `Delete` methods.
+- Instead, the domain layer defines a `PathCacheStorage` interface with `Set`, `Get`, and `Delete` methods.
 - The infrastructure layer provides a Redis implementation of this interface.
 - Thanks to dependency injection, we could easily swap the Redis implementation with any other caching solution (like Memcached or an in-memory cache) without changing any business logic.
 

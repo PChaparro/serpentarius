@@ -20,9 +20,8 @@
     }
   ],
   "config": {
-    "directory": "serpentarius",
-    "fileName": "sales-report-valid.pdf",
-    "publicURLPrefix": "http://localhost:9000",
+    "bucket": "serpentarius",
+    "key": "sales-report-valid.pdf",
     "expiration": 30
   }
 }
