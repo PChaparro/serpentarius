@@ -8,16 +8,21 @@ on:
 
 jobs:
   integration: 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: 🛫 Golang setup
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: "stable"
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: 📦 Download modules
+        run: go mod download
 
       - name: 🔍 Vet
         run: go vet ./... 
@@ -26,4 +31,4 @@ jobs:
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
       - name: 🔍 Lint (golangci-lint)
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
