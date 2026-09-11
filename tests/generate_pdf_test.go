@@ -148,6 +148,12 @@ func TestPostPDF_InvalidBucketKeyAndPageRange(t *testing.T) {
 			},
 		},
 		{
+			name: "Absurd cacheTTL",
+			mutate: func(body map[string]any) {
+				body["output"].(map[string]any)["cacheTTL"] = 999999999999
+			},
+		},
+		{
 			name: "PageRange without start",
 			mutate: func(body map[string]any) {
 				firstItemConfig(body)["pageRange"] = map[string]any{"end": 5}

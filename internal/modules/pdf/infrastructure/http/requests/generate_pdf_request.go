@@ -42,7 +42,7 @@ type PDFItem struct {
 type OutputConfig struct {
 	Bucket   string `json:"bucket" validate:"required,s3bucket"`
 	Key      string `json:"key" validate:"required,s3key"`
-	CacheTTL *int64 `json:"cacheTTL,omitempty" validate:"omitempty,min=0"` // Cache TTL in seconds (0 = cache without expiry)
+	CacheTTL *int64 `json:"cacheTTL,omitempty" validate:"omitempty,min=0,max=31536000"` // Cache TTL in seconds (0 = cache without expiry, max 365 days)
 }
 
 // GeneratePDFRequest represents the complete PDF generation request

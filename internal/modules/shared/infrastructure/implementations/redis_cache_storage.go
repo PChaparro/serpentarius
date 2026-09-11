@@ -3,6 +3,7 @@ package implementations
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -62,13 +63,22 @@ func createRedisClient() *redis.Client {
 	return client
 }
 
+// maxExpirationSeconds is the largest whole-second TTL that converts to a
+// time.Duration without int64 overflow.
+const maxExpirationSeconds = int64(math.MaxInt64 / int64(time.Second))
+
 // Set stores a file path in the Redis cache with an optional expiration time
 func (r *RedisCacheStorage) Set(request definitions.SetPathCacheRequest) error {
 	ctx := context.Background()
 
-	// Set expiration time if provided
+	// Set expiration time if provided, guarding against overflow in the
+	// seconds to time.Duration conversion (an overflow would silently
+	// produce a non-positive duration, i.e. no expiry).
 	var expiration time.Duration
 	if request.Expiration > 0 {
+		if request.Expiration > maxExpirationSeconds {
+			return fmt.Errorf("expiration %d seconds exceeds the maximum supported TTL of %d seconds", request.Expiration, maxExpirationSeconds)
+		}
 		expiration = time.Duration(request.Expiration) * time.Second
 	}
 

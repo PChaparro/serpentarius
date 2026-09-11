@@ -59,7 +59,7 @@ func GetUserFriendlyValidationErrorMessage(err validator.FieldError) string {
 	case "min":
 		return "Value must be greater than " + err.Param()
 	case "max":
-		return "Value must be less than " + err.Param()
+		return "Value must be at most " + err.Param()
 	case "oneof":
 		return "Value must be one of: " + err.Param()
 	case "gtefield":
