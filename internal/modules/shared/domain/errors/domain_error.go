@@ -1,3 +1,4 @@
+// Package errors provides domain error types.
 package errors
 
 // DomainError is an interface that represents a domain error in the application.
@@ -5,6 +6,7 @@ type DomainError interface {
 	Code() string
 	Message() string
 	Metadata() map[string]any
+	Error() string // Implement standard error interface
 }
 
 // GenericDomainError is a struct that implements the DomainError interface.
@@ -49,4 +51,9 @@ func (e *GenericDomainError) Message() string {
 // Metadata returns the metadata of the domain error.
 func (e *GenericDomainError) Metadata() map[string]any {
 	return e.metadata
+}
+
+// Error implements the error interface for GenericDomainError.
+func (e *GenericDomainError) Error() string {
+	return e.Message()
 }
