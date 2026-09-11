@@ -10,6 +10,11 @@ import (
 	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
 )
 
+// renderHashMetadataKey is the object metadata key holding the hash of the
+// request that produced the stored render. S3 user-metadata keys must stay
+// lowercase ASCII.
+const renderHashMetadataKey = "render-hash"
+
 // GeneratePDFUseCase is the use case for generating a PDF and returning its file reference.
 type GeneratePDFUseCase struct {
 	// PDFGenerator is the interface for generating PDFs
@@ -44,25 +49,25 @@ func (u *GeneratePDFUseCase) Execute(
 		return nil, fmt.Errorf("error checking cache for key: %w", err)
 	}
 
-	// If the key is cached, check if the file exists in cloud storage and return it
+	// If the key is cached, verify the stored object is the same render before returning it
 	if cachedKey != nil {
 		key := *cachedKey
 
-		// Check if the file exists in cloud storage
-		fileExists, err := u.CloudStorage.FileExists(sharedDefinitions.FileExistsRequest{
+		// Stat the file in cloud storage to check existence and identity
+		stat, err := u.CloudStorage.StatFile(sharedDefinitions.FileExistsRequest{
 			Bucket: request.Output.Bucket,
 			Key:    key,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("error checking file existence in cloud storage: %w", err)
+			return nil, fmt.Errorf("error stating file in cloud storage: %w", err)
 		}
 
-		// If the file exists, return the cached file reference
-		if fileExists {
+		// A real hit requires the stored render hash to match the current request hash
+		if stat.Exists && stat.Metadata[renderHashMetadataKey] == hash {
 			sharedUtilities.GetLogger().
 				WithField("bucket", request.Output.Bucket).
 				WithField("key", key).
-				Info("Cache HIT for key (file exists in cloud storage)")
+				Info("Cache HIT for key (render hash matches stored object)")
 
 			return &dto.PDFGenerationResult{
 				Bucket: request.Output.Bucket,
@@ -70,7 +75,8 @@ func (u *GeneratePDFUseCase) Execute(
 			}, nil
 		}
 
-		// If the file does not exist, remove it from the cache
+		// The cached entry is stale (object missing, identity mismatch or
+		// missing metadata): remove it and fall through to re-render
 		err = u.PathCacheStorage.Delete(hash)
 		if err != nil {
 			return nil, fmt.Errorf("error deleting invalid key from cache: %w", err)
@@ -83,12 +89,16 @@ func (u *GeneratePDFUseCase) Execute(
 		return nil, err
 	}
 
-	// Upload the PDF to cloud storage
+	// Upload the PDF to cloud storage, tagging it with the request hash
+	// so later cache hits can verify the stored object identity
 	uploadRequest := sharedDefinitions.UploadFileRequest{
 		FileReader:  pdfReader,
 		Bucket:      request.Output.Bucket,
 		Key:         request.Output.Key,
 		ContentType: "application/pdf",
+		Metadata: map[string]string{
+			renderHashMetadataKey: hash,
+		},
 	}
 	key, err := u.CloudStorage.UploadFile(uploadRequest)
 	if err != nil {

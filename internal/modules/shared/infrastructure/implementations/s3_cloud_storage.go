@@ -71,6 +71,7 @@ func (s *S3CloudStorage) UploadFile(request definitions.UploadFileRequest) (stri
 		Key:         aws.String(request.Key),
 		Body:        request.FileReader,
 		ContentType: aws.String(request.ContentType),
+		Metadata:    request.Metadata,
 	})
 
 	if err != nil {
@@ -81,9 +82,9 @@ func (s *S3CloudStorage) UploadFile(request definitions.UploadFileRequest) (stri
 	return request.Key, nil
 }
 
-// FileExists checks if a file exists in the S3 bucket
-func (s *S3CloudStorage) FileExists(request definitions.FileExistsRequest) (bool, error) {
-	_, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
+// StatFile returns whether a file exists in the S3 bucket along with its metadata
+func (s *S3CloudStorage) StatFile(request definitions.FileExistsRequest) (definitions.StatFileResult, error) {
+	output, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
 		Bucket: aws.String(request.Bucket),
 		Key:    aws.String(request.Key),
 	})
@@ -93,11 +94,19 @@ func (s *S3CloudStorage) FileExists(request definitions.FileExistsRequest) (bool
 		var apiErr smithy.APIError
 		if errors.As(err, &apiErr) {
 			if apiErr.ErrorCode() == "NotFound" || apiErr.ErrorCode() == "NoSuchKey" {
-				return false, nil
+				return definitions.StatFileResult{
+					Exists: false,
+				}, nil
 			}
 		}
-		return false, err
+
+		return definitions.StatFileResult{
+			Exists: false,
+		}, err
 	}
 
-	return true, nil
+	return definitions.StatFileResult{
+		Exists:   true,
+		Metadata: output.Metadata,
+	}, nil
 }
