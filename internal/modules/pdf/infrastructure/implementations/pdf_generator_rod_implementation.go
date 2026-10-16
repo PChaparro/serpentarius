@@ -15,6 +15,7 @@ import (
 
 	"slices"
 
+	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/definitions"
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	sharedInfrastructure "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
@@ -25,17 +26,24 @@ import (
 	pdfProcessingModel "github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-// Variables defining the resource limits for the browser pool
-var (
-	// MaxBrowsers defines the maximum number of browser instances to create
-	MaxBrowsers = sharedInfrastructure.GetEnvironment().MaxChromiumBrowsers
+// Resource limits for the browser pool. They are read lazily from the
+// environment on every use so that importing this package never snapshots
+// the configuration: eager package variables froze the environment
+// singleton before TestMain could set test values, which broke every
+// authenticated e2e test (the server compared against the wrong secret).
+func maxBrowsers() int {
+	return sharedInfrastructure.GetEnvironment().MaxChromiumBrowsers
+}
 
-	// MaxPagesPerBrowser defines the maximum number of pages per browser instance
-	MaxPagesPerBrowser = sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
+// maxPagesPerBrowser returns the maximum number of pages per browser instance.
+func maxPagesPerBrowser() int {
+	return sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
+}
 
-	// PageIdleTimeout defines how long a page can remain idle before being closed
-	PageIdleTimeout = time.Duration(sharedInfrastructure.GetEnvironment().MaxChromiumTabIdleSeconds) * time.Second
-)
+// pageIdleTimeout returns how long a page can remain idle before being closed.
+func pageIdleTimeout() time.Duration {
+	return time.Duration(sharedInfrastructure.GetEnvironment().MaxChromiumTabIdleSeconds) * time.Second
+}
 
 // PageWithBrowser associates a Rod Page with its parent Browser instance.
 // This structure is used in the page pool to track which page belongs to which browser.
@@ -73,29 +81,45 @@ type PDFGeneratorRod struct {
 }
 
 // Global singleton instance and initialization control
-var pdfGeneratorInstance *PDFGeneratorRod
+var pdfGeneratorInstance definitions.PDFGenerator
 var pdfGeneratorOnce sync.Once
+
+// NewPDFGeneratorRod creates a new PDF generator with an initialized browser
+// pool. It backs the GetPDFGeneratorRod singleton and lets tests build
+// isolated real generators without touching global state.
+func NewPDFGeneratorRod() *PDFGeneratorRod {
+	instance := &PDFGeneratorRod{
+		browsers:       make(map[string]*BrowserInfo),
+		availablePages: make([]*PageWithTimeout, 0),
+		waitingQueue:   make([]chan *PageWithTimeout, 0),
+	}
+
+	// Set up a finalizer to clean up resources when the generator is garbage collected
+	runtime.SetFinalizer(instance, func(p *PDFGeneratorRod) {
+		p.ReleaseBrowserPool()
+	})
+
+	return instance
+}
 
 // GetPDFGeneratorRod returns the singleton instance of the PDF generator.
 // It initializes the generator on the first call and sets up a finalizer
 // to ensure resources are properly released when the generator is garbage collected.
 // This follows the singleton pattern to ensure there's only one instance
 // managing the browser pool across the application.
-func GetPDFGeneratorRod() *PDFGeneratorRod {
+func GetPDFGeneratorRod() definitions.PDFGenerator {
 	pdfGeneratorOnce.Do(func() {
-		pdfGeneratorInstance = &PDFGeneratorRod{
-			browsers:       make(map[string]*BrowserInfo),
-			availablePages: make([]*PageWithTimeout, 0),
-			waitingQueue:   make([]chan *PageWithTimeout, 0),
+		if pdfGeneratorInstance == nil {
+			pdfGeneratorInstance = NewPDFGeneratorRod()
 		}
-
-		// Set up a finalizer to clean up resources when the generator is garbage collected
-		runtime.SetFinalizer(pdfGeneratorInstance, func(p *PDFGeneratorRod) {
-			p.ReleaseBrowserPool()
-		})
 	})
 
 	return pdfGeneratorInstance
+}
+
+// SetPDFGeneratorForTesting replaces the singleton with a test double (must be called before GetPDFGeneratorRod).
+func SetPDFGeneratorForTesting(generator definitions.PDFGenerator) {
+	pdfGeneratorInstance = generator
 }
 
 // createBrowser launches a new browser instance and adds it to the pool
@@ -184,7 +208,7 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 
 	// First, see if we have any browser with capacity for a new page
 	for _, browserInfo := range p.browsers {
-		if browserInfo.PageCount < MaxPagesPerBrowser {
+		if browserInfo.PageCount < maxPagesPerBrowser() {
 			// This browser can take another page
 			page, err := p.createPage(browserInfo)
 			if err != nil {
@@ -202,7 +226,7 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 	}
 
 	// No browser with capacity, need to create a new browser if allowed
-	if len(p.browsers) < MaxBrowsers {
+	if len(p.browsers) < maxBrowsers() {
 		browserInfo, err := p.createBrowser()
 		if err != nil {
 			sharedUtilities.GetLogger().
@@ -251,7 +275,7 @@ func (p *PDFGeneratorRod) startPageTimer(page *PageWithTimeout) {
 	}
 
 	// Start a new timer
-	page.Timer = time.AfterFunc(PageIdleTimeout, func() {
+	page.Timer = time.AfterFunc(pageIdleTimeout(), func() {
 		p.closeIdlePage(page)
 	})
 }
@@ -460,23 +484,23 @@ func (p *PDFGeneratorRod) buildPDFOptions(config *dto.ItemConfig) *proto.PagePri
 
 	// Configure page margins
 	if config.Margin != nil {
-		if config.Margin.Top != nil {
-			pdfOpts.MarginTop = config.Margin.Top
+		if config.Margin.TopInches != nil {
+			pdfOpts.MarginTop = config.Margin.TopInches
 		}
-		if config.Margin.Bottom != nil {
-			pdfOpts.MarginBottom = config.Margin.Bottom
+		if config.Margin.BottomInches != nil {
+			pdfOpts.MarginBottom = config.Margin.BottomInches
 		}
-		if config.Margin.Left != nil {
-			pdfOpts.MarginLeft = config.Margin.Left
+		if config.Margin.LeftInches != nil {
+			pdfOpts.MarginLeft = config.Margin.LeftInches
 		}
-		if config.Margin.Right != nil {
-			pdfOpts.MarginRight = config.Margin.Right
+		if config.Margin.RightInches != nil {
+			pdfOpts.MarginRight = config.Margin.RightInches
 		}
 	}
 
 	// Set page range to be printed
-	if config.PageRanges != nil {
-		pdfOpts.PageRanges = fmt.Sprintf("%d-%d", config.PageRanges.Start, config.PageRanges.End)
+	if config.PageRange != nil {
+		pdfOpts.PageRanges = fmt.Sprintf("%d-%d", config.PageRange.Start, config.PageRange.End)
 	}
 
 	// Set custom HTML for header and footer

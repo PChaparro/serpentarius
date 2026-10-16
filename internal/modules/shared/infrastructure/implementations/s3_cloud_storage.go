@@ -3,7 +3,6 @@ package implementations
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -21,19 +20,33 @@ type S3CloudStorage struct {
 }
 
 var (
-	s3CloudStorage *S3CloudStorage
+	s3CloudStorage definitions.CloudStorage
 	once           sync.Once
 )
+
+// NewS3CloudStorage creates a new S3-backed cloud storage from the current
+// environment. It backs the GetS3CloudStorage singleton and lets tests build
+// isolated real storages without touching global state.
+func NewS3CloudStorage() definitions.CloudStorage {
+	return &S3CloudStorage{
+		client: createS3Client(),
+	}
+}
 
 // GetS3CloudStorage returns a singleton instance of S3CloudStorage
 func GetS3CloudStorage() definitions.CloudStorage {
 	once.Do(func() {
-		s3CloudStorage = &S3CloudStorage{
-			client: createS3Client(),
+		if s3CloudStorage == nil {
+			s3CloudStorage = NewS3CloudStorage()
 		}
 	})
 
 	return s3CloudStorage
+}
+
+// SetCloudStorageForTesting replaces the singleton with a test double (must be called before GetS3CloudStorage).
+func SetCloudStorageForTesting(storage definitions.CloudStorage) {
+	s3CloudStorage = storage
 }
 
 // createS3Client creates a shared S3 client instance
@@ -65,29 +78,29 @@ func createS3Client() *s3.Client {
 	return client
 }
 
-// UploadFile uploads a file to S3 and returns the URL
+// UploadFile uploads a file to S3 and returns its object key
 func (s *S3CloudStorage) UploadFile(request definitions.UploadFileRequest) (string, error) {
 	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(request.FileFolder),
-		Key:         aws.String(request.FilePath),
+		Bucket:      aws.String(request.Bucket),
+		Key:         aws.String(request.Key),
 		Body:        request.FileReader,
 		ContentType: aws.String(request.ContentType),
+		Metadata:    request.Metadata,
 	})
 
 	if err != nil {
 		return "", err
 	}
 
-	// Construct the public URL
-	publicURL := fmt.Sprintf("%s/%s/%s", request.PublicURLPrefix, request.FileFolder, request.FilePath)
-	return publicURL, nil
+	// Return the object key
+	return request.Key, nil
 }
 
-// FileExists checks if a file exists in the S3 bucket
-func (s *S3CloudStorage) FileExists(request definitions.FileExistsRequest) (bool, error) {
-	_, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
-		Bucket: aws.String(request.FileFolder),
-		Key:    aws.String(request.FilePath),
+// StatFile returns whether a file exists in the S3 bucket along with its metadata
+func (s *S3CloudStorage) StatFile(request definitions.FileExistsRequest) (definitions.StatFileResult, error) {
+	output, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(request.Bucket),
+		Key:    aws.String(request.Key),
 	})
 
 	if err != nil {
@@ -95,11 +108,19 @@ func (s *S3CloudStorage) FileExists(request definitions.FileExistsRequest) (bool
 		var apiErr smithy.APIError
 		if errors.As(err, &apiErr) {
 			if apiErr.ErrorCode() == "NotFound" || apiErr.ErrorCode() == "NoSuchKey" {
-				return false, nil
+				return definitions.StatFileResult{
+					Exists: false,
+				}, nil
 			}
 		}
-		return false, err
+
+		return definitions.StatFileResult{
+			Exists: false,
+		}, err
 	}
 
-	return true, nil
+	return definitions.StatFileResult{
+		Exists:   true,
+		Metadata: output.Metadata,
+	}, nil
 }

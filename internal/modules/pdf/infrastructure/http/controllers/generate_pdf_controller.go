@@ -9,21 +9,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GeneratePDFReturningURLController handles the generation of a PDF and returns its public URL.
-type GeneratePDFReturningURLController struct {
-	UseCase use_cases.GeneratePDFReturningURLUseCase
+// GeneratePDFController handles the generation of a PDF and returns its file reference.
+type GeneratePDFController struct {
+	UseCase use_cases.GeneratePDFUseCase
 }
 
-// Handle processes the request to generate a PDF and return its public URL.
-func (controller *GeneratePDFReturningURLController) Handle(c *gin.Context) {
+// Handle processes the request to generate a PDF and return its file reference.
+func (controller *GeneratePDFController) Handle(c *gin.Context) {
 	// Get validated request from context
-	req := sharedMiddlewares.GetValidatedRequest(c).(*requests.GeneratePDFReturningURLRequest)
+	req := sharedMiddlewares.GetValidatedRequest(c).(*requests.GeneratePDFRequest)
 
 	// Convert request to DTO
 	dto := req.ToDTO()
 
 	// Call the use case
-	url, err := controller.UseCase.Execute(dto)
+	result, err := controller.UseCase.Execute(dto)
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -31,6 +31,7 @@ func (controller *GeneratePDFReturningURLController) Handle(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "PDF generated successfully",
-		"url":     url,
+		"bucket":  result.Bucket,
+		"key":     result.Key,
 	})
 }

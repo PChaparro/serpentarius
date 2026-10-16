@@ -1,0 +1,13 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+
+  exclusions:
+    rules:
+      - path: _test\.go|tests/
+        text: "Error return value of .*(Close|Terminate|Setenv).* is not checked"
+        linters:
+          - errcheck

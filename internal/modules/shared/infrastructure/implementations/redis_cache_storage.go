@@ -3,6 +3,7 @@ package implementations
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -12,25 +13,39 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisCacheStorage implements the UrlCacheStorage interface for Redis
+// RedisCacheStorage implements the PathCacheStorage interface for Redis
 type RedisCacheStorage struct {
 	client *redis.Client
 }
 
 var (
-	redisCacheStorage *RedisCacheStorage
+	redisCacheStorage definitions.PathCacheStorage
 	redisOnce         sync.Once
 )
 
+// NewRedisCacheStorage creates a new Redis-backed cache storage from the
+// current environment. It backs the GetRedisCacheStorage singleton and lets
+// tests build isolated real storages without touching global state.
+func NewRedisCacheStorage() definitions.PathCacheStorage {
+	return &RedisCacheStorage{
+		client: createRedisClient(),
+	}
+}
+
 // GetRedisCacheStorage returns a singleton instance of RedisCacheStorage
-func GetRedisCacheStorage() definitions.UrlCacheStorage {
+func GetRedisCacheStorage() definitions.PathCacheStorage {
 	redisOnce.Do(func() {
-		redisCacheStorage = &RedisCacheStorage{
-			client: createRedisClient(),
+		if redisCacheStorage == nil {
+			redisCacheStorage = NewRedisCacheStorage()
 		}
 	})
 
 	return redisCacheStorage
+}
+
+// SetCacheStorageForTesting replaces the singleton with a test double (must be called before GetRedisCacheStorage).
+func SetCacheStorageForTesting(storage definitions.PathCacheStorage) {
+	redisCacheStorage = storage
 }
 
 // createRedisClient creates a shared Redis client instance
@@ -62,13 +77,22 @@ func createRedisClient() *redis.Client {
 	return client
 }
 
-// Set stores a key-value pair in the Redis cache with an optional expiration time
-func (r *RedisCacheStorage) Set(request definitions.SetURLCacheRequest) error {
+// maxExpirationSeconds is the largest whole-second TTL that converts to a
+// time.Duration without int64 overflow.
+const maxExpirationSeconds = int64(math.MaxInt64 / int64(time.Second))
+
+// Set stores a file path in the Redis cache with an optional expiration time
+func (r *RedisCacheStorage) Set(request definitions.SetPathCacheRequest) error {
 	ctx := context.Background()
 
-	// Set expiration time if provided
+	// Set expiration time if provided, guarding against overflow in the
+	// seconds to time.Duration conversion (an overflow would silently
+	// produce a non-positive duration, i.e. no expiry).
 	var expiration time.Duration
 	if request.Expiration > 0 {
+		if request.Expiration > maxExpirationSeconds {
+			return fmt.Errorf("expiration %d seconds exceeds the maximum supported TTL of %d seconds", request.Expiration, maxExpirationSeconds)
+		}
 		expiration = time.Duration(request.Expiration) * time.Second
 	}
 

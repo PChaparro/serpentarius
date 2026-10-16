@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"errors"
 	"net/http"
 
 	sharedErrors "github.com/PChaparro/serpentarius/internal/modules/shared/domain/errors"
@@ -8,10 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// domainErrorCodeToHTTPStatusCode maps error codes to HTTP status codes
-var domainErrorCodeToHTTPStatusCode = map[string]int{
-	"ERROR": http.StatusInternalServerError,
-}
+// domainErrorCodeToHTTPStatusCode maps error codes to HTTP status codes.
+// Add entries here as domain errors are introduced, e.g.:
+// "ENTITY_NOT_FOUND": http.StatusNotFound,
+var domainErrorCodeToHTTPStatusCode = map[string]int{}
 
 // ErrorHandlerMiddleware is a Gin middleware that handles errors returned by the application
 // and sends appropriate HTTP responses to the client.
@@ -27,10 +28,10 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				WithError(err.Err).
 				Error("An error occurred while processing the request")
 
-			switch e := err.Err.(type) {
-			// Handle domain errors
-			case sharedErrors.DomainError:
-				domainErrorCode := e.Code()
+			var domainErr sharedErrors.DomainError
+			if errors.As(err.Err, &domainErr) {
+				// Handle domain errors
+				domainErrorCode := domainErr.Code()
 
 				statusCode, isErrorCodeMapped := domainErrorCodeToHTTPStatusCode[domainErrorCode]
 				if !isErrorCodeMapped {
@@ -39,14 +40,14 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				}
 
 				c.JSON(statusCode, gin.H{
-					"message":  e.Message(),
-					"metadata": e.Metadata(),
+					"message":  domainErr.Message(),
+					"metadata": domainErr.Metadata(),
 				})
-			// Handle unexpected errors
-			default:
+			} else {
+				// Handle unexpected errors
 				c.JSON(500, gin.H{
 					"message": "There was an error processing your request",
-					// "error":   e.Error(),
+					// "error":   err.Err.Error(),
 				})
 			}
 		}

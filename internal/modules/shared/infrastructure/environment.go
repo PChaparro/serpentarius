@@ -13,6 +13,7 @@ import (
 const (
 	ENVIRONMENT_PRODUCTION  = "production"
 	ENVIRONMENT_DEVELOPMENT = "development"
+	ENVIRONMENT_TEST        = "test"
 )
 
 // EnvironmentSpec holds the configuration for the application environment.
@@ -59,16 +60,20 @@ func GetEnvironment() *EnvironmentSpec {
 }
 
 // loadFromEnvFile loads environment variables from a .env file if not in production.
+// The test environment (ENVIRONMENT=test) never touches the filesystem: TestMain
+// sets every required variable explicitly, so a missing .env must not log.Fatal.
 func loadFromEnvFile() {
 	execEnvironment := os.Getenv("ENVIRONMENT")
 
-	if execEnvironment != ENVIRONMENT_PRODUCTION {
-		// Try to find .env file starting from current directory and going up
-		envPath := findEnvFile()
-		err := godotenv.Load(envPath)
-		if err != nil {
-			log.Fatal("[ERROR] ", err.Error())
-		}
+	if execEnvironment == ENVIRONMENT_PRODUCTION || execEnvironment == ENVIRONMENT_TEST {
+		return
+	}
+
+	// Try to find .env file starting from current directory and going up
+	envPath := findEnvFile()
+	err := godotenv.Load(envPath)
+	if err != nil {
+		log.Fatal("[ERROR] ", err.Error())
 	}
 }
 

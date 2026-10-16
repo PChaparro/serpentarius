@@ -32,3 +32,20 @@ jobs:
 
       - name: 🔍 Lint (golangci-lint)
         uses: golangci/golangci-lint-action@v9
+
+      - name: 🌐 Install Chromium
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          install-dependencies: true
+
+      # Ubuntu 24.04 restricts unprivileged user namespaces via AppArmor, which
+      # breaks Chromium's sandbox on CI ("No usable sandbox!"). See Chrome's docs:
+      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+      - name: 🔓 Disable AppArmor user namespace restriction
+        run: echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+
+      - name: 🧪 Test
+        run: make test
+        env:
+          CHROMIUM_BINARY_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
