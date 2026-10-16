@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// pageSizeCase is one row of the getPageSizeFromString matrix (plan §5 Phase 1).
+// pageSizeCase is one row of the getPageSizeFromString matrix.
 // Expected dimensions are precomputed literals, never recomputed with prod logic.
-// The mutant is documented in a `// Mutant:` comment on each row (plan §1.1.3).
+// The mutant is documented in a `// Mutant:` comment on each row.
 type pageSizeCase struct {
 	name  string
 	size  string

@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// pdfOptionsCase is one row of the buildPDFOptions matrix (plan §5 Phase 1).
+// pdfOptionsCase is one row of the buildPDFOptions matrix.
 // Expected options are precomputed literals, never derived from prod logic.
-// The mutant is documented in a `// Mutant:` comment on each row (plan §1.1.3).
+// The mutant is documented in a `// Mutant:` comment on each row.
 type pdfOptionsCase struct {
 	name   string
 	config *dto.ItemConfig

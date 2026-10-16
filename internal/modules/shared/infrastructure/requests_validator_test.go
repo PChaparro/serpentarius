@@ -21,16 +21,16 @@ type cacheNamespaceProbe struct {
 	Value string `validate:"cachenamespace"`
 }
 
-// validatorCase is one row of the validator matrices (plan §5 Phase 1).
+// validatorCase is one row of the validator matrices.
 // The mutant is documented in a `// Mutant:` comment on each row: it names
-// the prod line whose removal must turn that case red (plan §1.1.3).
+// the prod line whose removal must turn that case red.
 type validatorCase struct {
 	name   string
 	value  string
 	wantOK bool
 }
 
-// runValidatorCasesArgs groups the matrix inputs (plan §1.2 args-struct rule).
+// runValidatorCasesArgs groups the matrix inputs into a single args struct.
 type runValidatorCasesArgs struct {
 	Cases []validatorCase
 	Probe func(value string) any
