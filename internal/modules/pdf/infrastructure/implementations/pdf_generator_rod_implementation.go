@@ -26,17 +26,24 @@ import (
 	pdfProcessingModel "github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-// Variables defining the resource limits for the browser pool
-var (
-	// MaxBrowsers defines the maximum number of browser instances to create
-	MaxBrowsers = sharedInfrastructure.GetEnvironment().MaxChromiumBrowsers
+// Resource limits for the browser pool. They are read lazily from the
+// environment on every use so that importing this package never snapshots
+// the configuration: eager package variables froze the environment
+// singleton before TestMain could set test values, which broke every
+// authenticated e2e test (the server compared against the wrong secret).
+func maxBrowsers() int {
+	return sharedInfrastructure.GetEnvironment().MaxChromiumBrowsers
+}
 
-	// MaxPagesPerBrowser defines the maximum number of pages per browser instance
-	MaxPagesPerBrowser = sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
+// maxPagesPerBrowser returns the maximum number of pages per browser instance.
+func maxPagesPerBrowser() int {
+	return sharedInfrastructure.GetEnvironment().MaxChromiumTabsPerBrowser
+}
 
-	// PageIdleTimeout defines how long a page can remain idle before being closed
-	PageIdleTimeout = time.Duration(sharedInfrastructure.GetEnvironment().MaxChromiumTabIdleSeconds) * time.Second
-)
+// pageIdleTimeout returns how long a page can remain idle before being closed.
+func pageIdleTimeout() time.Duration {
+	return time.Duration(sharedInfrastructure.GetEnvironment().MaxChromiumTabIdleSeconds) * time.Second
+}
 
 // PageWithBrowser associates a Rod Page with its parent Browser instance.
 // This structure is used in the page pool to track which page belongs to which browser.
@@ -194,7 +201,7 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 
 	// First, see if we have any browser with capacity for a new page
 	for _, browserInfo := range p.browsers {
-		if browserInfo.PageCount < MaxPagesPerBrowser {
+		if browserInfo.PageCount < maxPagesPerBrowser() {
 			// This browser can take another page
 			page, err := p.createPage(browserInfo)
 			if err != nil {
@@ -212,7 +219,7 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 	}
 
 	// No browser with capacity, need to create a new browser if allowed
-	if len(p.browsers) < MaxBrowsers {
+	if len(p.browsers) < maxBrowsers() {
 		browserInfo, err := p.createBrowser()
 		if err != nil {
 			sharedUtilities.GetLogger().
@@ -261,7 +268,7 @@ func (p *PDFGeneratorRod) startPageTimer(page *PageWithTimeout) {
 	}
 
 	// Start a new timer
-	page.Timer = time.AfterFunc(PageIdleTimeout, func() {
+	page.Timer = time.AfterFunc(pageIdleTimeout(), func() {
 		p.closeIdlePage(page)
 	})
 }
