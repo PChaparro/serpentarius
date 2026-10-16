@@ -24,13 +24,20 @@ var (
 	once           sync.Once
 )
 
+// NewS3CloudStorage creates a new S3-backed cloud storage from the current
+// environment. It backs the GetS3CloudStorage singleton and lets tests build
+// isolated real storages without touching global state.
+func NewS3CloudStorage() definitions.CloudStorage {
+	return &S3CloudStorage{
+		client: createS3Client(),
+	}
+}
+
 // GetS3CloudStorage returns a singleton instance of S3CloudStorage
 func GetS3CloudStorage() definitions.CloudStorage {
 	once.Do(func() {
 		if s3CloudStorage == nil {
-			s3CloudStorage = &S3CloudStorage{
-				client: createS3Client(),
-			}
+			s3CloudStorage = NewS3CloudStorage()
 		}
 	})
 

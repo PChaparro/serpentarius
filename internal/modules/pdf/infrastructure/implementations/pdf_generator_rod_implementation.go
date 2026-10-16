@@ -84,6 +84,24 @@ type PDFGeneratorRod struct {
 var pdfGeneratorInstance definitions.PDFGenerator
 var pdfGeneratorOnce sync.Once
 
+// NewPDFGeneratorRod creates a new PDF generator with an initialized browser
+// pool. It backs the GetPDFGeneratorRod singleton and lets tests build
+// isolated real generators without touching global state.
+func NewPDFGeneratorRod() *PDFGeneratorRod {
+	instance := &PDFGeneratorRod{
+		browsers:       make(map[string]*BrowserInfo),
+		availablePages: make([]*PageWithTimeout, 0),
+		waitingQueue:   make([]chan *PageWithTimeout, 0),
+	}
+
+	// Set up a finalizer to clean up resources when the generator is garbage collected
+	runtime.SetFinalizer(instance, func(p *PDFGeneratorRod) {
+		p.ReleaseBrowserPool()
+	})
+
+	return instance
+}
+
 // GetPDFGeneratorRod returns the singleton instance of the PDF generator.
 // It initializes the generator on the first call and sets up a finalizer
 // to ensure resources are properly released when the generator is garbage collected.
@@ -92,18 +110,7 @@ var pdfGeneratorOnce sync.Once
 func GetPDFGeneratorRod() definitions.PDFGenerator {
 	pdfGeneratorOnce.Do(func() {
 		if pdfGeneratorInstance == nil {
-			instance := &PDFGeneratorRod{
-				browsers:       make(map[string]*BrowserInfo),
-				availablePages: make([]*PageWithTimeout, 0),
-				waitingQueue:   make([]chan *PageWithTimeout, 0),
-			}
-
-			// Set up a finalizer to clean up resources when the generator is garbage collected
-			runtime.SetFinalizer(instance, func(p *PDFGeneratorRod) {
-				p.ReleaseBrowserPool()
-			})
-
-			pdfGeneratorInstance = instance
+			pdfGeneratorInstance = NewPDFGeneratorRod()
 		}
 	})
 

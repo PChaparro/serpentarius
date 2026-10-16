@@ -23,13 +23,20 @@ var (
 	redisOnce         sync.Once
 )
 
+// NewRedisCacheStorage creates a new Redis-backed cache storage from the
+// current environment. It backs the GetRedisCacheStorage singleton and lets
+// tests build isolated real storages without touching global state.
+func NewRedisCacheStorage() definitions.PathCacheStorage {
+	return &RedisCacheStorage{
+		client: createRedisClient(),
+	}
+}
+
 // GetRedisCacheStorage returns a singleton instance of RedisCacheStorage
 func GetRedisCacheStorage() definitions.PathCacheStorage {
 	redisOnce.Do(func() {
 		if redisCacheStorage == nil {
-			redisCacheStorage = &RedisCacheStorage{
-				client: createRedisClient(),
-			}
+			redisCacheStorage = NewRedisCacheStorage()
 		}
 	})
 
