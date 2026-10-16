@@ -108,7 +108,7 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 | `MAX_CHROMIUM_TAB_IDLE_SECONDS` | Segundos máximos que una página puede estar inactiva antes de cerrarse | `30`                                                                                           |
 | `ENVIRONMENT`                   | Entorno de ejecución (development/production)                          | `development`                                                                                  |
 
-Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.yml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.
+Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.local.yaml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.
 
 Para generar el secreto de autenticación, puedes usar el siguiente comando:
 
@@ -121,13 +121,13 @@ openssl rand -base64 64
 Para ejecutar todos los tests y generar un reporte de cobertura, usa:
 
 ```bash
-go test -coverpkg=./... -coverprofile=./coverage/coverage.out ./tests/...
+make test
 ```
 
 Para ver el reporte de cobertura en tu navegador:
 
 ```bash
-go tool cover -html=./coverage/coverage.out
+make coverage-html
 ```
 
-Asegúrate de tener todas las variables de entorno requeridas configuradas en un archivo `.env` en la raíz del repositorio para que los tests funcionen correctamente.
+Los tests levantan Redis y almacenamiento compatible con S3 en contenedores automáticamente, por lo que se requiere un runtime de contenedores (Docker o Podman). El renderizado real de PDFs también requiere Chromium instalado localmente; configura `CHROMIUM_BINARY_PATH` si el binario no está en `/usr/bin/chromium`. El propio harness configura sus variables de entorno, así que no hace falta un archivo `.env`.

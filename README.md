@@ -108,7 +108,7 @@ For any installation method, configure these variables in a `.env` file or in th
 | `MAX_CHROMIUM_TAB_IDLE_SECONDS` | Maximum seconds a page can remain idle before being closed | `30`                                                                                 |
 | `ENVIRONMENT`                   | Execution environment (development/production)             | `development`                                                                        |
 
-The values shown in the `Development Value` column are compatible with the `container-compose.yml` file included in the project, which configures Dragonfly (Redis alternative) and MinIO (S3 alternative) for local development. If you use your own servers, adjust these variables accordingly.
+The values shown in the `Development Value` column are compatible with the `container-compose.local.yaml` file included in the project, which configures Dragonfly (Redis alternative) and MinIO (S3 alternative) for local development. If you use your own servers, adjust these variables accordingly.
 
 To generate the authentication secret, you can use the following command:
 
@@ -121,13 +121,13 @@ openssl rand -base64 64
 To run all tests and generate a coverage report, use:
 
 ```bash
-go test -coverpkg=./... -coverprofile=./coverage/coverage.out ./tests/...
+make test
 ```
 
 To view the coverage report in your browser:
 
 ```bash
-go tool cover -html=./coverage/coverage.out
+make coverage-html
 ```
 
-Make sure you have all required environment variables configured in a `.env` file at the root of the repository for the tests to work correctly.
+The tests provision Redis and S3-compatible storage in containers automatically, so a container runtime (Docker or Podman) is required. Real PDF rendering also needs Chromium installed locally; set `CHROMIUM_BINARY_PATH` if the binary is not at `/usr/bin/chromium`. The harness configures its own environment variables, so no `.env` file is needed.
