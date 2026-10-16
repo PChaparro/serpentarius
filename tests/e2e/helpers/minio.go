@@ -74,9 +74,7 @@ type DownloadObjectResult struct {
 	ContentType string
 }
 
-// DownloadObject fetches an object from S3-compatible storage. Used in later
-// phases to assert magic bytes, page count, extracted text and render-hash
-// metadata of the object the API stored.
+// DownloadObject fetches an object from S3-compatible storage.
 func DownloadObject(t *testing.T, args DownloadObjectArgs) DownloadObjectResult {
 	t.Helper()
 

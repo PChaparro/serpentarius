@@ -426,7 +426,6 @@ func (s *PDFValidationSuite) TestValidationCases() {
 			}
 			switch {
 			case tc.omitBody:
-				// No body is sent at all.
 			case tc.raw != nil:
 				args.RawBody = tc.raw
 			default:

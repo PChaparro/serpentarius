@@ -13,7 +13,7 @@ type CacheEntry struct {
 }
 
 // StubCacheStorage is a test double for definitions.PathCacheStorage backed by
-// a map. It covers the HIT/MISS/TTL/namespace branches in later phases.
+// a map. It covers the HIT/MISS/TTL/namespace branches.
 type StubCacheStorage struct {
 	mu             sync.Mutex
 	Entries        map[string]CacheEntry

@@ -17,7 +17,7 @@ type StoredObject struct {
 
 // StubCloudStorage is a test double for definitions.CloudStorage backed by a
 // map keyed by "bucket/key". It covers the stale-object branches (missing
-// object, mismatched render-hash) and upload failures in later phases.
+// object, mismatched render-hash) and upload failures.
 type StubCloudStorage struct {
 	mu                sync.Mutex
 	Objects           map[string]StoredObject

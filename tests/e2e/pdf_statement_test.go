@@ -23,18 +23,13 @@ import (
 // This suite renders a realistic monthly bank statement for real: the request
 // travels over HTTP into the shared real-wired engine built once per run
 // (see real_engine_test.go) with the production use case and real
-// implementations (rod generator, S3 storage, Redis cache). No
-// doubles sit in the generation path, so the render exercises Chromium,
-// pdfcpu, MinIO and Redis. The fixture stays small (about 22KB) and renders
-// in seconds.
+// implementations (rod generator, S3 storage, Redis cache).
 
 // statementHeaderTemplate is the printed page header: bank name plus the
 // per-run header marker. Chromium header templates ignore body margins, so
 // the padding below clears the page edges (horizontal) and the top edge
-// (vertical). The single %s is the marker; the template carries no other
-// percent signs so Sprintf stays safe. Classes follow the fixture BEM
-// naming; inline styles do the rendering because the template is a
-// standalone fragment without access to the fixture stylesheet.
+// (vertical). The single %s is the marker; keep the template free of other
+// percent signs so Sprintf stays safe.
 const statementHeaderTemplate = `<div class="statement-chrome__header" style="font-family:Arial,sans-serif;font-size:9px;color:#5b6b7a;padding:2mm 12mm 0 12mm;">` +
 	`<span class="statement-chrome__brand">Meridian Trust Bank</span>` +
 	`<span class="statement-chrome__ref" style="float:right;">Statement ref %s</span></div>`
@@ -105,8 +100,7 @@ func (s *PDFStatementSuite) SetupSuite() {
 	s.hashGen = sharedImplementations.GetXxHashGenerator()
 
 	// getRawJSONResponse targets the package server URL, so point it at the
-	// shared real-wired engine for the whole suite and restore it afterwards.
-	// Suites never run in parallel, so no other suite can observe the swap.
+	// shared real-wired engine for the suite and restore it afterwards.
 	s.previousServerURL = ServerURL
 	ServerURL = sharedRealServerURL(t)
 

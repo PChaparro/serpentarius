@@ -9,8 +9,8 @@ import (
 )
 
 // defaultStubPDFBytes is the minimal payload returned when PDFBytes is empty.
-// It only carries the %PDF- magic header; semantic PDF asserts in later phases
-// use payloads injected per test via PDFBytes.
+// It only carries the %PDF- magic header; semantic PDF asserts inject payloads
+// per test via PDFBytes.
 var defaultStubPDFBytes = []byte("%PDF-1.4 stub\n%%EOF")
 
 // StubPDFGenerator is a test double for definitions.PDFGenerator.

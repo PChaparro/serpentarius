@@ -21,20 +21,12 @@ import (
 // pdfEndpointPath is the only route under test in this package.
 const pdfEndpointPath = "/api/v1/pdf"
 
-// ---------------------------------------------------------------------------
-// Named response types (match the API wire format)
-// ---------------------------------------------------------------------------
-
 // pdfSuccessResponse is the 200 envelope of POST /api/v1/pdf.
 type pdfSuccessResponse struct {
 	Message string `json:"message"`
 	Bucket  string `json:"bucket"`
 	Key     string `json:"key"`
 }
-
-// ---------------------------------------------------------------------------
-// Raw request helpers
-// ---------------------------------------------------------------------------
 
 // RawRequestArgs groups the parameters for a raw HTTP request. AuthHeader is
 // the exact Authorization header value to send; nil sends no header at all.
@@ -116,10 +108,6 @@ func authToken(t *testing.T) string {
 
 	return token
 }
-
-// ---------------------------------------------------------------------------
-// Auth assertion helpers
-// ---------------------------------------------------------------------------
 
 // assertUnauthorized sends the request described by args and asserts the server
 // responds with HTTP 401 and a non-empty error message.

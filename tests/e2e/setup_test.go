@@ -52,6 +52,9 @@ var (
 	CacheStorageStub *stubs.StubCacheStorage
 )
 
+// TestMain boots the harness once per run: real Redis and MinIO containers,
+// environment variables, the ephemeral test bucket, the stub-injected mock
+// engine and, afterwards, the shared real engine teardown.
 func TestMain(m *testing.M) {
 	// Production containers run in UTC, so the whole test binary must too.
 	time.Local = time.UTC
@@ -116,6 +119,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// startRedisContainer starts a Redis container and returns its reachable endpoint.
 func startRedisContainer(cfg redisContainerConfig) (containerEndpoint, error) {
 	fmt.Printf("Starting Redis container (image: %s)...\n", cfg.Image)
 
@@ -150,6 +154,7 @@ func startRedisContainer(cfg redisContainerConfig) (containerEndpoint, error) {
 	return containerEndpoint{Container: redisContainer, Host: host, Port: mappedPort.Port()}, nil
 }
 
+// startMinIOContainer starts a MinIO container and returns its reachable endpoint.
 func startMinIOContainer(cfg minioContainerConfig) (containerEndpoint, error) {
 	fmt.Printf("Starting MinIO container (image: %s)...\n", cfg.Image)
 
@@ -200,6 +205,8 @@ type envVarsArgs struct {
 	MinIOPassword string
 }
 
+// setEnvVars exports the container endpoints and fixed test secrets consumed
+// by the production configuration.
 func setEnvVars(args envVarsArgs) {
 	os.Setenv("ENVIRONMENT", "test")
 
@@ -231,6 +238,7 @@ type minioCredentials struct {
 	Password string
 }
 
+// createBucket creates the ephemeral test bucket on the MinIO container.
 func createBucket(ctx context.Context, creds minioCredentials, bucket string) error {
 	endpoint := os.Getenv("AWS_S3_ENDPOINT_URL")
 
@@ -264,6 +272,8 @@ func createBucket(ctx context.Context, creds minioCredentials, bucket string) er
 	return nil
 }
 
+// ensureOutputDir creates the gitignored directory where rendered PDFs are
+// saved for visual review.
 func ensureOutputDir() {
 	outputDir := filepath.Join("testdata", "output")
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
@@ -272,6 +282,8 @@ func ensureOutputDir() {
 	}
 }
 
+// injectStubs replaces all three production singletons with fresh stubs
+// before the router is built.
 func injectStubs() {
 	PDFGeneratorStub = &stubs.StubPDFGenerator{}
 	pdfImplementations.SetPDFGeneratorForTesting(PDFGeneratorStub)

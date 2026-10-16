@@ -17,9 +17,8 @@ import (
 // This suite renders PDFs for real: each request travels over HTTP into the
 // shared real-wired engine built once per run (see real_engine_test.go) with
 // the production use case and real implementations (rod generator, S3
-// storage, Redis cache). No doubles sit in the generation
-// path, so every render exercises Chromium, pdfcpu, MinIO and Redis. Renders
-// are slow, so coverage stays at four cases with semantic asserts only.
+// storage, Redis cache), so every render exercises Chromium, pdfcpu, MinIO
+// and Redis.
 
 // renderRequestArgs groups the fields of a generation request built for a render test.
 type renderRequestArgs struct {
@@ -123,8 +122,7 @@ func (s *PDFRenderSuite) SetupSuite() {
 	s.hashGen = sharedImplementations.GetXxHashGenerator()
 
 	// getRawJSONResponse targets the package server URL, so point it at the
-	// shared real-wired engine for the whole suite and restore it afterwards.
-	// Suites never run in parallel, so no other suite can observe the swap.
+	// shared real-wired engine for the suite and restore it afterwards.
 	s.previousServerURL = ServerURL
 	ServerURL = sharedRealServerURL(t)
 

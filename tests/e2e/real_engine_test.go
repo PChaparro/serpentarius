@@ -15,17 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Sharing rule: the real engine is shareable because its wiring is identical
-// and stateless across suites. The rod page pool and the storage clients are
-// shared and thread-safe by construction, while test isolation lives in
-// per-test keys, buckets and namespaces, so suites never observe each other.
-// The mock engine in TestMain is NOT shared this way: its stubs hold mutable
-// captures that each stub suite resets, so sharing would leak state.
-
-// NewRealEngine builds the production-shaped engine for real renders: default
-// engine, error middleware and POST /api/v1/pdf behind auth and validation,
-// with the controller wired to the rod generator, S3 storage, Redis cache
-// and xxhash. No doubles sit in the generation path.
+// NewRealEngine builds the production-shaped engine for real renders: error
+// middleware and POST /api/v1/pdf behind auth and validation, with the
+// controller wired to the rod generator, S3 storage, Redis cache and xxhash.
 func NewRealEngine(t *testing.T) *gin.Engine {
 	t.Helper()
 
@@ -58,9 +50,8 @@ var (
 	sharedRealServer     *httptest.Server
 )
 
-// sharedRealServerURL starts the single shared real engine once per run and
-// returns its URL. Suites point the package ServerURL at it in SetupSuite
-// and restore the previous value in TearDownSuite.
+// sharedRealServerURL starts the shared real engine once per run and returns
+// its URL.
 func sharedRealServerURL(t *testing.T) string {
 	t.Helper()
 
@@ -73,7 +64,6 @@ func sharedRealServerURL(t *testing.T) string {
 }
 
 // closeSharedRealServer stops the shared real engine at the end of the run.
-// It runs after every test has finished, so no suite can observe the close.
 func closeSharedRealServer() {
 	if sharedRealServer != nil {
 		sharedRealServer.Close()

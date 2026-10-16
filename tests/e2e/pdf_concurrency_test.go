@@ -53,8 +53,8 @@ type concurrentRenderResult struct {
 }
 
 // postConcurrentRender posts one generation request and decodes the 200
-// envelope, returning every failure as a value for the test goroutine to
-// assert. It never touches require: it runs on a worker goroutine.
+// envelope, returning every failure as a value so it never calls require from
+// a worker goroutine.
 func postConcurrentRender(args concurrentRenderArgs) concurrentRenderResult {
 	payload, err := json.Marshal(args.Body)
 	if err != nil {
@@ -126,8 +126,7 @@ func (s *PDFConcurrencySuite) SetupSuite() {
 	s.hashGen = sharedImplementations.GetXxHashGenerator()
 
 	// getRawJSONResponse targets the package server URL, so point it at the
-	// shared real-wired engine for the whole suite and restore it afterwards.
-	// Suites never run in parallel, so no other suite can observe the swap.
+	// shared real-wired engine for the suite and restore it afterwards.
 	s.previousServerURL = ServerURL
 	ServerURL = sharedRealServerURL(t)
 
@@ -197,10 +196,9 @@ func (s *PDFConcurrencySuite) assertStoredRender(args renderObjectArgs) helpers.
 }
 
 // TestConcurrentRenders fires twice the pool capacity in small renders at
-// once and asserts every one lands a 200 with its own key and a
-// semantically valid stored object. Distinct markers give distinct hashes,
-// so no burst member can serve another member's cache entry. Every stored
-// object is inspected and every PDF is kept under testdata/output.
+// once and asserts every one lands a 200 with its own key and a semantically
+// valid stored object. Distinct markers give distinct hashes, so no burst
+// member can serve another member's cache entry.
 func (s *PDFConcurrencySuite) TestConcurrentRenders() {
 	// Mutant: removing the waiting queue drops every request beyond pool
 	// capacity instead of serving it, so the overflow members never answer
@@ -272,8 +270,7 @@ func (s *PDFConcurrencySuite) TestConcurrentRenders() {
 
 // TestPoolHealthyAfterBurst posts one more small render and asserts it
 // succeeds with a valid stored object, proving the burst left no page
-// checked out or browser wedged. It stays green on its own: it only needs
-// a working pool, not the burst test to have run first.
+// checked out or browser wedged.
 func (s *PDFConcurrencySuite) TestPoolHealthyAfterBurst() {
 	// Mutant: a pool that never returns pages serves the first renders and
 	// then stalls, so this trailing render never answers 200.
