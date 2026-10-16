@@ -17,8 +17,9 @@ import (
 )
 
 // smokeHTMLTemplate is the inline fixture: a single line carrying the
-// per-run {{.Marker}} so suites can assert marker propagation. Rich
-// fixtures (invoice/cover/terms) live under testdata/*.html.tmpl.
+// per-run {{.Marker}} so suites can assert marker propagation. The
+// realistic statement fixture lives under testdata/statement.html.tmpl and
+// renders through RenderStatementTemplate below.
 const smokeHTMLTemplate = `<html><body><h1>Hello-{{.Marker}}</h1></body></html>`
 
 // TemplateArgs groups the parameters for rendering an HTML template.
@@ -47,6 +48,44 @@ func RenderTemplate(t *testing.T, args TemplateArgs) TemplateResult {
 	require.Contains(t, html, args.Marker, "rendered HTML must contain the marker")
 
 	return TemplateResult{HTML: html}
+}
+
+// statementFixturePath is the versioned bank statement fixture: a polished
+// monthly statement with per-section markers derived from {{.Marker}}.
+const statementFixturePath = "testdata/statement.html.tmpl"
+
+// StatementTemplateArgs groups the parameters for rendering the statement fixture.
+type StatementTemplateArgs struct {
+	Marker string // per-run uuid injected as {{.Marker}}
+}
+
+// StatementTemplateResult carries the rendered statement HTML.
+type StatementTemplateResult struct {
+	HTML string
+}
+
+// RenderStatementTemplate renders the statement fixture with the given
+// marker. Section markers derive from it as {{.Marker}}-header,
+// {{.Marker}}-summary, {{.Marker}}-chart, {{.Marker}}-movements and
+// {{.Marker}}-notes, so suites can assert section presence and order.
+func RenderStatementTemplate(t *testing.T, args StatementTemplateArgs) StatementTemplateResult {
+	t.Helper()
+	require.NotEmpty(t, args.Marker, "marker must not be empty")
+
+	raw, err := os.ReadFile(statementFixturePath)
+	require.NoError(t, err, "reading statement fixture")
+
+	tmpl, err := template.New("statement").Parse(string(raw))
+	require.NoError(t, err, "parsing statement fixture")
+
+	var rendered strings.Builder
+	err = tmpl.Execute(&rendered, map[string]string{"Marker": args.Marker})
+	require.NoError(t, err, "rendering statement fixture")
+
+	html := rendered.String()
+	require.Contains(t, html, args.Marker, "rendered statement must contain the marker")
+
+	return StatementTemplateResult{HTML: html}
 }
 
 // SavePDFArgs groups the parameters for saving a PDF to disk.
