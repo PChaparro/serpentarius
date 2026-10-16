@@ -75,7 +75,7 @@ func TestMain(m *testing.M) {
 	minioCreds := minioCredentials{User: "e2e-minio-user", Password: "e2e-minio-password"}
 	minioInfo, err := startMinIOContainer(minioContainerConfig{
 		Ctx:      ctx,
-		Image:    "minio/minio:latest",
+		Image:    "docker.io/pgsty/silo:RELEASE.2026-10-15T00-00-00Z",
 		User:     minioCreds.User,
 		Password: minioCreds.Password,
 	})
@@ -154,7 +154,8 @@ func startRedisContainer(cfg redisContainerConfig) (containerEndpoint, error) {
 	return containerEndpoint{Container: redisContainer, Host: host, Port: mappedPort.Port()}, nil
 }
 
-// startMinIOContainer starts a MinIO container and returns its reachable endpoint.
+// startMinIOContainer starts the MinIO-compatible object storage container
+// (pgsty/silo, the maintained MinIO fork) and returns its reachable endpoint.
 func startMinIOContainer(cfg minioContainerConfig) (containerEndpoint, error) {
 	fmt.Printf("Starting MinIO container (image: %s)...\n", cfg.Image)
 

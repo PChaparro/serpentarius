@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  serpentarius-minio: 
-    image: docker.io/minio/minio:latest
+  serpentarius-minio:
+    image: docker.io/pgsty/silo:RELEASE.2026-10-15T00-00-00Z
     container_name: serpentarius-minio
     restart: on-failure
     ports:
@@ -14,7 +14,7 @@ services:
     volumes:
       - ./volumes/minio:/data
     command: server /data --console-address ":9001"
-  
+
   serpentarius-dragonfly:
     image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
     container_name: serpentarius-dragonfly
