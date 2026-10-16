@@ -20,19 +20,26 @@ type S3CloudStorage struct {
 }
 
 var (
-	s3CloudStorage *S3CloudStorage
+	s3CloudStorage definitions.CloudStorage
 	once           sync.Once
 )
 
 // GetS3CloudStorage returns a singleton instance of S3CloudStorage
 func GetS3CloudStorage() definitions.CloudStorage {
 	once.Do(func() {
-		s3CloudStorage = &S3CloudStorage{
-			client: createS3Client(),
+		if s3CloudStorage == nil {
+			s3CloudStorage = &S3CloudStorage{
+				client: createS3Client(),
+			}
 		}
 	})
 
 	return s3CloudStorage
+}
+
+// SetCloudStorageForTesting replaces the singleton with a test double (must be called before GetS3CloudStorage).
+func SetCloudStorageForTesting(storage definitions.CloudStorage) {
+	s3CloudStorage = storage
 }
 
 // createS3Client creates a shared S3 client instance

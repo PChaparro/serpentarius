@@ -15,6 +15,7 @@ import (
 
 	"slices"
 
+	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/definitions"
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	sharedInfrastructure "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure"
 	sharedUtilities "github.com/PChaparro/serpentarius/internal/modules/shared/utilities"
@@ -73,7 +74,7 @@ type PDFGeneratorRod struct {
 }
 
 // Global singleton instance and initialization control
-var pdfGeneratorInstance *PDFGeneratorRod
+var pdfGeneratorInstance definitions.PDFGenerator
 var pdfGeneratorOnce sync.Once
 
 // GetPDFGeneratorRod returns the singleton instance of the PDF generator.
@@ -81,21 +82,30 @@ var pdfGeneratorOnce sync.Once
 // to ensure resources are properly released when the generator is garbage collected.
 // This follows the singleton pattern to ensure there's only one instance
 // managing the browser pool across the application.
-func GetPDFGeneratorRod() *PDFGeneratorRod {
+func GetPDFGeneratorRod() definitions.PDFGenerator {
 	pdfGeneratorOnce.Do(func() {
-		pdfGeneratorInstance = &PDFGeneratorRod{
-			browsers:       make(map[string]*BrowserInfo),
-			availablePages: make([]*PageWithTimeout, 0),
-			waitingQueue:   make([]chan *PageWithTimeout, 0),
-		}
+		if pdfGeneratorInstance == nil {
+			instance := &PDFGeneratorRod{
+				browsers:       make(map[string]*BrowserInfo),
+				availablePages: make([]*PageWithTimeout, 0),
+				waitingQueue:   make([]chan *PageWithTimeout, 0),
+			}
 
-		// Set up a finalizer to clean up resources when the generator is garbage collected
-		runtime.SetFinalizer(pdfGeneratorInstance, func(p *PDFGeneratorRod) {
-			p.ReleaseBrowserPool()
-		})
+			// Set up a finalizer to clean up resources when the generator is garbage collected
+			runtime.SetFinalizer(instance, func(p *PDFGeneratorRod) {
+				p.ReleaseBrowserPool()
+			})
+
+			pdfGeneratorInstance = instance
+		}
 	})
 
 	return pdfGeneratorInstance
+}
+
+// SetPDFGeneratorForTesting replaces the singleton with a test double (must be called before GetPDFGeneratorRod).
+func SetPDFGeneratorForTesting(generator definitions.PDFGenerator) {
+	pdfGeneratorInstance = generator
 }
 
 // createBrowser launches a new browser instance and adds it to the pool

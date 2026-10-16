@@ -19,19 +19,26 @@ type RedisCacheStorage struct {
 }
 
 var (
-	redisCacheStorage *RedisCacheStorage
+	redisCacheStorage definitions.PathCacheStorage
 	redisOnce         sync.Once
 )
 
 // GetRedisCacheStorage returns a singleton instance of RedisCacheStorage
 func GetRedisCacheStorage() definitions.PathCacheStorage {
 	redisOnce.Do(func() {
-		redisCacheStorage = &RedisCacheStorage{
-			client: createRedisClient(),
+		if redisCacheStorage == nil {
+			redisCacheStorage = &RedisCacheStorage{
+				client: createRedisClient(),
+			}
 		}
 	})
 
 	return redisCacheStorage
+}
+
+// SetCacheStorageForTesting replaces the singleton with a test double (must be called before GetRedisCacheStorage).
+func SetCacheStorageForTesting(storage definitions.PathCacheStorage) {
+	redisCacheStorage = storage
 }
 
 // createRedisClient creates a shared Redis client instance
