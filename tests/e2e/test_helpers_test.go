@@ -32,15 +32,6 @@ type pdfSuccessResponse struct {
 	Key     string `json:"key"`
 }
 
-// apiErrorResponse is the error envelope returned by middlewares.
-// Auth failures: {"message": "..."}.
-// Validation failures: {"message": "Validation failed", "errors": [...]}.
-// Unexpected failures: {"message": "There was an error processing your request"}.
-type apiErrorResponse struct {
-	Message string   `json:"message"`
-	Errors  []string `json:"errors,omitempty"`
-}
-
 // ---------------------------------------------------------------------------
 // Raw request helpers
 // ---------------------------------------------------------------------------

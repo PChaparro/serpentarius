@@ -112,6 +112,7 @@ func TestMain(m *testing.M) {
 	fmt.Printf("Test server ready at %s (bucket %s)\n", ServerURL, TestBucket)
 
 	code := m.Run()
+	closeSharedRealServer()
 	os.Exit(code)
 }
 

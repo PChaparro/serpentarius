@@ -4,20 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/PChaparro/serpentarius/internal/modules/pdf/application/use_cases"
-	"github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/http/controllers"
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/http/requests"
-	pdfImplementations "github.com/PChaparro/serpentarius/internal/modules/pdf/infrastructure/implementations"
 	sharedDefinitions "github.com/PChaparro/serpentarius/internal/modules/shared/domain/definitions"
-	sharedMiddlewares "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure/http/middlewares"
 	sharedImplementations "github.com/PChaparro/serpentarius/internal/modules/shared/infrastructure/implementations"
 	"github.com/PChaparro/serpentarius/internal/testutils"
 	"github.com/PChaparro/serpentarius/tests/e2e/helpers"
-	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -27,8 +21,9 @@ import (
 )
 
 // This suite renders a realistic monthly bank statement for real: the request
-// travels over HTTP into a dedicated engine wired with the production use
-// case and real implementations (rod generator, S3 storage, Redis cache). No
+// travels over HTTP into the shared real-wired engine built once per run
+// (see real_engine_test.go) with the production use case and real
+// implementations (rod generator, S3 storage, Redis cache). No
 // doubles sit in the generation path, so the render exercises Chromium,
 // pdfcpu, MinIO and Redis. The fixture stays small (about 22KB) and renders
 // in seconds.
@@ -100,7 +95,6 @@ type statementObjectResult struct {
 type PDFStatementSuite struct {
 	suite.Suite
 	client            *http.Client
-	server            *httptest.Server
 	hashGen           sharedDefinitions.HashGenerator
 	previousServerURL string
 }
@@ -110,43 +104,17 @@ func (s *PDFStatementSuite) SetupSuite() {
 	s.client = &http.Client{}
 	s.hashGen = sharedImplementations.GetXxHashGenerator()
 
-	requireChromium(t)
-
-	useCase := use_cases.GeneratePDFUseCase{
-		PDFGenerator:     pdfImplementations.NewPDFGeneratorRod(),
-		CloudStorage:     sharedImplementations.NewS3CloudStorage(),
-		PathCacheStorage: sharedImplementations.NewRedisCacheStorage(),
-		HashGenerator:    s.hashGen,
-	}
-	controller := &controllers.GeneratePDFController{UseCase: useCase}
-
-	// Same route shape as production: default engine, error middleware and
-	// POST /api/v1/pdf behind auth and validation.
-	engine := gin.Default()
-	engine.Use(sharedMiddlewares.ErrorHandlerMiddleware())
-	apiV1 := engine.Group("/api/v1")
-	pdfGroup := apiV1.Group("/pdf")
-	pdfGroup.POST(
-		"",
-		sharedMiddlewares.AuthMiddleware(),
-		sharedMiddlewares.RequestValidationMiddleware(requests.GeneratePDFRequest{}),
-		controller.Handle,
-	)
-
-	s.server = httptest.NewServer(engine)
-
 	// getRawJSONResponse targets the package server URL, so point it at the
-	// real-wired engine for the whole suite and restore it afterwards. Suites
-	// never run in parallel, so no other suite can observe the swap.
+	// shared real-wired engine for the whole suite and restore it afterwards.
+	// Suites never run in parallel, so no other suite can observe the swap.
 	s.previousServerURL = ServerURL
-	ServerURL = s.server.URL
+	ServerURL = sharedRealServerURL(t)
 
 	helpers.FlushRedis(t)
 	helpers.EnsureBucket(t, helpers.EnsureBucketArgs{Bucket: TestBucket})
 }
 
 func (s *PDFStatementSuite) TearDownSuite() {
-	s.server.Close()
 	ServerURL = s.previousServerURL
 }
 
