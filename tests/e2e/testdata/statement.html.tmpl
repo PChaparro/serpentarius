@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Monthly bank statement</title>
+<style>
+  @page { size: A4; margin: 14mm 12mm 18mm 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #1c2733;
+  }
+  .masthead {
+    display: table;
+    width: 100%;
+    border-bottom: 3px solid #1b3a5c;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .masthead__brand { display: table-cell; vertical-align: middle; width: 64px; }
+  .masthead__logo { width: 48px; height: 48px; }
+  .masthead__identity { display: table-cell; vertical-align: middle; }
+  .masthead__bank { margin: 0; font-size: 20px; color: #1b3a5c; }
+  .masthead__tagline { margin: 0; font-size: 11px; color: #5b6b7a; }
+  .masthead__meta { display: table-cell; vertical-align: middle; text-align: right; font-size: 11px; }
+  .masthead__meta-label { color: #5b6b7a; }
+  .masthead__meta-value { font-weight: bold; }
+  .masthead__ref { margin: 4px 0 0; font-size: 10px; color: #5b6b7a; }
+  .summary { margin-bottom: 18px; }
+  .summary__title { margin: 0 0 8px; font-size: 14px; color: #1b3a5c; }
+  .summary__grid { display: table; width: 100%; table-layout: fixed; }
+  .summary__card {
+    display: table-cell;
+    color: #ffffff;
+    padding: 12px 14px;
+    border-right: 8px solid #ffffff;
+  }
+  .summary__card:last-child { border-right: 0; }
+  .summary__card--opening { background: #1b3a5c; }
+  .summary__card--in { background: #1e7e46; }
+  .summary__card--out { background: #b23b3b; }
+  .summary__card--closing { background: #2f2f38; }
+  .summary__card-label { margin: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .summary__card-value { margin: 2px 0 0; font-size: 18px; font-weight: bold; }
+  .summary__ref { margin: 6px 0 0; font-size: 10px; color: #5b6b7a; }
+  .chart { margin-bottom: 18px; }
+  .chart__title { margin: 0 0 8px; font-size: 14px; color: #1b3a5c; }
+  .chart__bars { display: table; width: 100%; table-layout: fixed; height: 150px; }
+  .chart__column { display: table-cell; vertical-align: bottom; text-align: center; }
+  .chart__bar {
+    width: 60%;
+    margin: 0 auto;
+    background: #2f7fc4;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+  }
+  .chart__bar--peak { background: #1b3a5c; }
+  .chart__month { display: block; margin-top: 4px; font-size: 9px; color: #5b6b7a; }
+  .chart__ref { margin: 6px 0 0; font-size: 10px; color: #5b6b7a; }
+  .movements { margin-bottom: 18px; }
+  .movements__title { margin: 0 0 8px; font-size: 14px; color: #1b3a5c; }
+  .movements__table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .movements__table thead { display: table-header-group; }
+  .movements__head-cell {
+    background: #1b3a5c;
+    color: #ffffff;
+    text-align: left;
+    padding: 7px 8px;
+  }
+  .movements__head-cell--amount { text-align: right; }
+  .movements__row { page-break-inside: avoid; }
+  .movements__row:nth-child(even) { background: #eef2f6; }
+  .movements__cell { padding: 5px 8px; border-bottom: 1px solid #d7dee5; }
+  .movements__cell--date { white-space: nowrap; color: #5b6b7a; }
+  .movements__cell--amount { text-align: right; font-weight: bold; white-space: nowrap; }
+  .movements__ref { margin: 6px 0 0; font-size: 10px; color: #5b6b7a; }
+  .notes { page-break-before: always; }
+  .notes__title { margin: 0 0 8px; font-size: 14px; color: #1b3a5c; }
+  .notes__list { margin: 0 0 16px 18px; padding: 0; }
+  .notes__item { margin-bottom: 6px; }
+  .notes__signature { margin-top: 24px; }
+  .notes__signature-line { width: 240px; border-top: 1px solid #1c2733; padding-top: 4px; }
+  .notes__ref { margin: 12px 0 0; font-size: 10px; color: #5b6b7a; }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead__brand">
+      <img class="masthead__logo" alt="Meridian Trust Bank logo" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='24' r='22' fill='%231b3a5c'/%3E%3Ctext x='24' y='31' font-family='Arial' font-size='22' font-weight='bold' text-anchor='middle' fill='white'%3EM%3C/text%3E%3C/svg%3E">
+    </div>
+    <div class="masthead__identity">
+      <h1 class="masthead__bank">Meridian Trust Bank</h1>
+      <p class="masthead__tagline">Monthly account statement</p>
+    </div>
+    <div class="masthead__meta">
+      <div><span class="masthead__meta-label">Holder: </span><span class="masthead__meta-value">Alex Morgan</span></div>
+      <div><span class="masthead__meta-label">Account: </span><span class="masthead__meta-value">**** 4821</span></div>
+      <div><span class="masthead__meta-label">Period: </span><span class="masthead__meta-value">01 - 30 September 2026</span></div>
+      <p class="masthead__ref">Statement ref {{.Marker}}-header</p>
+    </div>
+  </header>
+
+  <section class="summary">
+    <h2 class="summary__title">Balance summary</h2>
+    <div class="summary__grid">
+      <div class="summary__card summary__card--opening">
+        <p class="summary__card-label">Opening balance</p>
+        <p class="summary__card-value">2,140.18</p>
+      </div>
+      <div class="summary__card summary__card--in">
+        <p class="summary__card-label">Money in</p>
+        <p class="summary__card-value">+4,049.06</p>
+      </div>
+      <div class="summary__card summary__card--out">
+        <p class="summary__card-label">Money out</p>
+        <p class="summary__card-value">-3,481.50</p>
+      </div>
+      <div class="summary__card summary__card--closing">
+        <p class="summary__card-label">Closing balance</p>
+        <p class="summary__card-value">2,707.74</p>
+      </div>
+    </div>
+    <p class="summary__ref">Summary ref {{.Marker}}-summary</p>
+  </section>
+
+  <section class="chart">
+    <h2 class="chart__title">Spending by month, last 12 months</h2>
+    <div class="chart__bars">
+      <div class="chart__column"><div class="chart__bar" style="height:64px"></div><span class="chart__month">Oct</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:72px"></div><span class="chart__month">Nov</span></div>
+      <div class="chart__column"><div class="chart__bar chart__bar--peak" style="height:118px"></div><span class="chart__month">Dec</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:58px"></div><span class="chart__month">Jan</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:66px"></div><span class="chart__month">Feb</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:80px"></div><span class="chart__month">Mar</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:74px"></div><span class="chart__month">Apr</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:88px"></div><span class="chart__month">May</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:70px"></div><span class="chart__month">Jun</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:92px"></div><span class="chart__month">Jul</span></div>
+      <div class="chart__column"><div class="chart__bar" style="height:84px"></div><span class="chart__month">Aug</span></div>
+      <div class="chart__column"><div class="chart__bar chart__bar--peak" style="height:110px"></div><span class="chart__month">Sep</span></div>
+    </div>
+    <p class="chart__ref">Chart ref {{.Marker}}-chart</p>
+  </section>
+
+  <section class="movements">
+    <h2 class="movements__title">Account movements</h2>
+    <table class="movements__table">
+      <thead>
+        <tr>
+          <th class="movements__head-cell">Date</th>
+          <th class="movements__head-cell">Description</th>
+          <th class="movements__head-cell movements__head-cell--amount">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-01</td><td class="movements__cell">Salary deposit ACME Corp</td><td class="movements__cell movements__cell--amount">+3,250.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-01</td><td class="movements__cell">Rent Elm Street Apt 4B</td><td class="movements__cell movements__cell--amount">-1,150.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-02</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-84.20</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-02</td><td class="movements__cell">Fuel Shell Station 9</td><td class="movements__cell movements__cell--amount">-45.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-03</td><td class="movements__cell">Electricity bill UtilCo</td><td class="movements__cell movements__cell--amount">-62.40</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-03</td><td class="movements__cell">Coffee Corner Cafe</td><td class="movements__cell movements__cell--amount">-4.75</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-04</td><td class="movements__cell">Transfer to savings</td><td class="movements__cell movements__cell--amount">-200.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-04</td><td class="movements__cell">Pharmacy MediPlus</td><td class="movements__cell movements__cell--amount">-18.90</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-05</td><td class="movements__cell">Salary advance repayment</td><td class="movements__cell movements__cell--amount">-150.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-05</td><td class="movements__cell">Bookstore Page Turner</td><td class="movements__cell movements__cell--amount">-32.50</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-06</td><td class="movements__cell">Water bill CityWater</td><td class="movements__cell movements__cell--amount">-28.15</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-06</td><td class="movements__cell">Cinema tickets Rex</td><td class="movements__cell movements__cell--amount">-24.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-07</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-91.35</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-07</td><td class="movements__cell">ATM withdrawal Main St</td><td class="movements__cell movements__cell--amount">-100.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-08</td><td class="movements__cell">Internet bill NetFast</td><td class="movements__cell movements__cell--amount">-49.99</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-08</td><td class="movements__cell">Lunch Bistro Verde</td><td class="movements__cell movements__cell--amount">-16.80</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-09</td><td class="movements__cell">Gas bill FlameGas</td><td class="movements__cell movements__cell--amount">-41.22</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-09</td><td class="movements__cell">Gym membership FitLife</td><td class="movements__cell movements__cell--amount">-35.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-10</td><td class="movements__cell">Freelance payout DesignHub</td><td class="movements__cell movements__cell--amount">+480.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-10</td><td class="movements__cell">Clothing NorthWind</td><td class="movements__cell movements__cell--amount">-120.45</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-11</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-77.60</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-11</td><td class="movements__cell">Parking meter Zone 3</td><td class="movements__cell movements__cell--amount">-6.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-12</td><td class="movements__cell">Phone bill MobiTel</td><td class="movements__cell movements__cell--amount">-29.90</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-12</td><td class="movements__cell">Bakery Golden Crust</td><td class="movements__cell movements__cell--amount">-12.40</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-13</td><td class="movements__cell">Transfer from savings</td><td class="movements__cell movements__cell--amount">+200.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-13</td><td class="movements__cell">Electronics VoltShop</td><td class="movements__cell movements__cell--amount">-89.99</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-14</td><td class="movements__cell">Restaurant Casa Luna</td><td class="movements__cell movements__cell--amount">-58.30</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-14</td><td class="movements__cell">Taxi ride CityCab</td><td class="movements__cell movements__cell--amount">-14.50</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-15</td><td class="movements__cell">Insurance premium SafeGuard</td><td class="movements__cell movements__cell--amount">-110.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-15</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-83.15</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-16</td><td class="movements__cell">Coffee Corner Cafe</td><td class="movements__cell movements__cell--amount">-5.25</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-16</td><td class="movements__cell">Haircut Studio Clip</td><td class="movements__cell movements__cell--amount">-28.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-17</td><td class="movements__cell">Dividend payout FundIndex</td><td class="movements__cell movements__cell--amount">+96.40</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-17</td><td class="movements__cell">Shoes RunnerPro</td><td class="movements__cell movements__cell--amount">-75.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-18</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-69.80</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-18</td><td class="movements__cell">Car wash Sparkle</td><td class="movements__cell movements__cell--amount">-12.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-19</td><td class="movements__cell">Dental clinic SmileCare</td><td class="movements__cell movements__cell--amount">-140.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-19</td><td class="movements__cell">Magazine subscription</td><td class="movements__cell movements__cell--amount">-9.99</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-20</td><td class="movements__cell">Transfer to savings</td><td class="movements__cell movements__cell--amount">-200.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-20</td><td class="movements__cell">Pet store PawsCo</td><td class="movements__cell movements__cell--amount">-42.60</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-21</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-88.05</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-21</td><td class="movements__cell">Train ticket Central</td><td class="movements__cell movements__cell--amount">-22.50</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-22</td><td class="movements__cell">Cashback reward program</td><td class="movements__cell movements__cell--amount">+18.75</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-22</td><td class="movements__cell">Hardware store FixIt</td><td class="movements__cell movements__cell--amount">-54.30</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-23</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-74.90</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-23</td><td class="movements__cell">Streaming service StreamFlix</td><td class="movements__cell movements__cell--amount">-13.99</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-24</td><td class="movements__cell">Charity donation Helping Hands</td><td class="movements__cell movements__cell--amount">-50.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-24</td><td class="movements__cell">Lunch Bistro Verde</td><td class="movements__cell movements__cell--amount">-15.60</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-25</td><td class="movements__cell">Refund VoltShop return</td><td class="movements__cell movements__cell--amount">+89.99</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-25</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-81.25</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-26</td><td class="movements__cell">Taxi ride CityCab</td><td class="movements__cell movements__cell--amount">-11.80</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-26</td><td class="movements__cell">Gift shop Little Joys</td><td class="movements__cell movements__cell--amount">-36.75</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-27</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-79.40</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-27</td><td class="movements__cell">Fuel Shell Station 9</td><td class="movements__cell movements__cell--amount">-48.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-28</td><td class="movements__cell">Phone top-up MobiTel</td><td class="movements__cell movements__cell--amount">-20.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-28</td><td class="movements__cell">Bakery Golden Crust</td><td class="movements__cell movements__cell--amount">-10.85</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-29</td><td class="movements__cell">Interest credit savings</td><td class="movements__cell movements__cell--amount">+4.92</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-29</td><td class="movements__cell">Grocery FreshMart 221</td><td class="movements__cell movements__cell--amount">-86.55</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-30</td><td class="movements__cell">Transfer to savings</td><td class="movements__cell movements__cell--amount">-150.00</td></tr>
+        <tr class="movements__row"><td class="movements__cell movements__cell--date">2026-09-30</td><td class="movements__cell">Coffee Corner Cafe</td><td class="movements__cell movements__cell--amount">-4.50</td></tr>
+      </tbody>
+    </table>
+    <p class="movements__ref">Movements ref {{.Marker}}-movements</p>
+  </section>
+
+  <section class="notes">
+    <h2 class="notes__title">Legal notes</h2>
+    <ul class="notes__list">
+      <li class="notes__item">This statement covers the period 01 - 30 September 2026. Report any discrepancy within 30 days of receipt.</li>
+      <li class="notes__item">Pending card authorizations may not appear in the movements list until the merchant settles the charge.</li>
+      <li class="notes__item">Interest on the savings balance accrues daily and credits on the last business day of each month.</li>
+    </ul>
+    <div class="notes__signature">
+      <p>Authorized signature</p>
+      <div class="notes__signature-line">Dana Whitfield, Branch Manager, 2026-10-05</div>
+    </div>
+    <p class="notes__ref">Notes ref {{.Marker}}-notes</p>
+  </section>
+</body>
+</html>

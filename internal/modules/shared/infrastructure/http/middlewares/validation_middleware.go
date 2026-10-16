@@ -19,11 +19,8 @@ func RequestValidationMiddleware(structType any) gin.HandlerFunc {
 			"errors":  []string{},
 		}
 
-		// Create a new instance of the struct
-		val := reflect.ValueOf(structType)
-		if val.Kind() == reflect.Ptr {
-			val = val.Elem()
-		}
+		// Create a new instance of the struct (dereference pointer if needed)
+		val := reflect.Indirect(reflect.ValueOf(structType))
 		requestStructPtr := reflect.New(val.Type()).Interface()
 
 		// Decode request body

@@ -24,6 +24,17 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Check if it starts with "Bearer "
 		const prefix = "Bearer "
+		if authHeader == "Bearer" {
+			// A client sending "Bearer " (prefix plus an empty token) arrives
+			// here as "Bearer": the HTTP parser trims the trailing space, so
+			// the prefix check below would report it as a missing prefix.
+			// Treat that shape as what it is: an empty token.
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": "Token cannot be empty",
+			})
+			return
+		}
+
 		if !strings.HasPrefix(authHeader, prefix) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Authorization header must start with 'Bearer'",

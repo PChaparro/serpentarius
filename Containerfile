@@ -1,5 +1,5 @@
 # Build stage 🛠️
-FROM docker.io/golang:1.24.3-alpine3.21 AS builder
+FROM docker.io/golang:1.27.1-alpine3.24 AS builder
 
 ## Install upx
 WORKDIR /source
@@ -15,14 +15,15 @@ RUN go build -o dist/serpentarius.bin ./cmd/http/main.go
 RUN upx dist/serpentarius.bin
 
 # Final stage 🚀
-FROM docker.io/alpine:3.21.3 AS runner
+FROM docker.io/alpine:3.24.1 AS runner
 
 ## Install required system deps
+ARG CHROMIUM_VERSION=152.0.7977.82-r0
 RUN apk --no-cache add \
-    chromium \
+    chromium=${CHROMIUM_VERSION} \
     fontconfig \
     ttf-liberation \
-    tzdata 
+    tzdata
 
 ## Configure Timezone
 ENV TZ=America/Bogota

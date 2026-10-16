@@ -6,10 +6,10 @@ on:
 
 jobs:
   versioning:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: ⬇️ Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Fetch all history
           token: ${{ secrets.PAT }}
@@ -23,6 +23,7 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cocogitto
+          version: "7.0.0"
 
       - name: 🏷️ Versioning
         run: cog bump --auto --skip-ci
