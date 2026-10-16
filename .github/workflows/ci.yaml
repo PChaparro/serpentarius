@@ -32,3 +32,14 @@ jobs:
 
       - name: 🔍 Lint (golangci-lint)
         uses: golangci/golangci-lint-action@v9
+
+      - name: 🌐 Install Chromium
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          install-dependencies: true
+
+      - name: 🧪 Test
+        run: make test
+        env:
+          CHROMIUM_BINARY_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
