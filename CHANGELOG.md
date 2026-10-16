@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v1.0.0](https://github.com/PChaparro/serpentarius/compare/860427f70ae1b28efbdddfdd33bf9fa9f0faaca0..v1.0.0) - 2026-10-16
+#### Features
+- ![BREAKING](https://img.shields.io/badge/BREAKING-red) (**pdf**) redesign PDF API contract, add unit/e2e coverage and CI (#18) - ([137b2db](https://github.com/PChaparro/serpentarius/commit/137b2db47266ca763938e7d7eab8cc35bfd624f1)) - Pedro Chaparro
+#### Tests
+- (**pdf**) generate pdf returning URL (#15) - ([860427f](https://github.com/PChaparro/serpentarius/commit/860427f70ae1b28efbdddfdd33bf9fa9f0faaca0)) - Pedro Chaparro
+#### Miscellaneous Chores
+- bump dependencies, container images and workflows (#17) - ([33f619e](https://github.com/PChaparro/serpentarius/commit/33f619e6a06ad74f6732335a1c905135408b14b6)) - Pedro Chaparro
+
+- - -
+
 ## [v0.5.1](https://github.com/PChaparro/serpentarius/compare/b0c1cba21b6c7486705b3f8958427f43bf26fd8f..v0.5.1) - 2025-05-25
 #### Bug Fixes
 - **(pdf)** check file existence in S3 using HeadObject instead of GET request (#13) - ([b0c1cba](https://github.com/PChaparro/serpentarius/commit/b0c1cba21b6c7486705b3f8958427f43bf26fd8f)) - Pedro Chaparro
