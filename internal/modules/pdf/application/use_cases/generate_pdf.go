@@ -15,6 +15,9 @@ import (
 // lowercase ASCII.
 const renderHashMetadataKey = "render-hash"
 
+// pdfRenderCachePrefix is the prefix for PDF render cache keys.
+const pdfRenderCachePrefix = "pdf:render"
+
 // GeneratePDFUseCase is the use case for generating a PDF and returning its file reference.
 type GeneratePDFUseCase struct {
 	// PDFGenerator is the interface for generating PDFs
@@ -43,8 +46,14 @@ func (u *GeneratePDFUseCase) Execute(
 		return nil, fmt.Errorf("error generating hash for cache key: %w", err)
 	}
 
+	// Build the namespaced cache key
+	redisKey := pdfRenderCachePrefix + ":" + hash
+	if request.Cache.Namespace != "" {
+		redisKey = pdfRenderCachePrefix + ":" + request.Cache.Namespace + ":" + hash
+	}
+
 	// Check if the key is already cached
-	cachedKey, err := u.PathCacheStorage.Get(hash)
+	cachedKey, err := u.PathCacheStorage.Get(redisKey)
 	if err != nil {
 		return nil, fmt.Errorf("error checking cache for key: %w", err)
 	}
@@ -77,7 +86,7 @@ func (u *GeneratePDFUseCase) Execute(
 
 		// The cached entry is stale (object missing, identity mismatch or
 		// missing metadata): remove it and fall through to re-render
-		err = u.PathCacheStorage.Delete(hash)
+		err = u.PathCacheStorage.Delete(redisKey)
 		if err != nil {
 			return nil, fmt.Errorf("error deleting invalid key from cache: %w", err)
 		}
@@ -107,9 +116,9 @@ func (u *GeneratePDFUseCase) Execute(
 
 	// Cache the key with the generated hash as the key
 	cacheRequest := sharedDefinitions.SetPathCacheRequest{
-		Key:        hash,
+		Key:        redisKey,
 		Value:      key,
-		Expiration: request.Output.CacheTTL,
+		Expiration: request.Cache.TTL,
 	}
 
 	err = u.PathCacheStorage.Set(cacheRequest)

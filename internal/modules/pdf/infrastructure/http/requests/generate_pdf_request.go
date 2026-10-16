@@ -1,6 +1,8 @@
 package requests
 
 import (
+	"strings"
+
 	"github.com/PChaparro/serpentarius/internal/modules/pdf/domain/dto"
 	"github.com/ysmood/gson"
 )
@@ -40,15 +42,21 @@ type PDFItem struct {
 
 // OutputConfig represents the output configuration of the generated PDF
 type OutputConfig struct {
-	Bucket   string `json:"bucket" validate:"required,s3bucket"`
-	Key      string `json:"key" validate:"required,s3key"`
-	CacheTTL *int64 `json:"cacheTTL,omitempty" validate:"omitempty,min=0,max=31536000"` // Cache TTL in seconds (0 = cache without expiry, max 365 days)
+	Bucket string `json:"bucket" validate:"required,s3bucket"`
+	Key    string `json:"key" validate:"required,s3key"`
+}
+
+// CacheConfig represents the cache configuration of the generated PDF
+type CacheConfig struct {
+	TTL       *int64 `json:"ttl,omitempty" validate:"omitempty,min=0,max=31536000"` // Cache TTL in seconds (0 = cache without expiry, max 365 days)
+	Namespace string `json:"namespace,omitempty" validate:"omitempty,cachenamespace"`
 }
 
 // GeneratePDFRequest represents the complete PDF generation request
 type GeneratePDFRequest struct {
 	Items  []PDFItem    `json:"items" validate:"required,dive"`
 	Output OutputConfig `json:"output" validate:"required"`
+	Cache  *CacheConfig `json:"cache,omitempty" validate:"omitempty"`
 }
 
 // getPageSizeFromString converts a string representation of a page size to a PageSize struct
@@ -144,14 +152,23 @@ func buildItemConfig(config *ItemConfig) *dto.ItemConfig {
 func (r *GeneratePDFRequest) ToDTO() *dto.PDFGenerationDTO {
 	// Default to 0 (cache without expiry) when no cache TTL is provided
 	var cacheTTL int64
-	if r.Output.CacheTTL != nil {
-		cacheTTL = *r.Output.CacheTTL
+	var namespace string
+
+	if r.Cache != nil {
+		if r.Cache.TTL != nil {
+			cacheTTL = *r.Cache.TTL
+		}
+		namespace = strings.TrimSpace(r.Cache.Namespace)
 	}
 
 	output := dto.OutputConfig{
-		Bucket:   r.Output.Bucket,
-		Key:      r.Output.Key,
-		CacheTTL: cacheTTL,
+		Bucket: r.Output.Bucket,
+		Key:    r.Output.Key,
+	}
+
+	cache := dto.CacheConfig{
+		TTL:       cacheTTL,
+		Namespace: namespace,
 	}
 
 	items := make([]dto.PDFItem, len(r.Items))
@@ -166,5 +183,6 @@ func (r *GeneratePDFRequest) ToDTO() *dto.PDFGenerationDTO {
 	return &dto.PDFGenerationDTO{
 		Items:  items,
 		Output: output,
+		Cache:  cache,
 	}
 }

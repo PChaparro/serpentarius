@@ -17,6 +17,10 @@ var (
 // lowercase letters, digits, dots and hyphens, starting and ending alphanumerically.
 var s3BucketNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
 
+// cacheNamespacePattern matches colon-separated segments of alphanumerics,
+// underscores, dots and hyphens (case-sensitive).
+var cacheNamespacePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)*$`)
+
 // validateS3Bucket checks a value against the pragmatic S3 bucket subset
 // (3-63 chars, restricted charset, no consecutive dots).
 func validateS3Bucket(fl validator.FieldLevel) bool {
@@ -40,6 +44,19 @@ func validateS3Key(fl validator.FieldLevel) bool {
 	return !strings.HasPrefix(key, "/")
 }
 
+// validateCacheNamespace checks a value against the cache namespace rules
+// (1-128 chars, charset [A-Za-z0-9_.-] with colon-separated segments, no consecutive dots).
+func validateCacheNamespace(fl validator.FieldLevel) bool {
+	namespace := fl.Field().String()
+	if len(namespace) < 1 || len(namespace) > 128 {
+		return false
+	}
+	if strings.Contains(namespace, "..") {
+		return false
+	}
+	return cacheNamespacePattern.MatchString(namespace)
+}
+
 // GetValidatorInstance returns a singleton instance of the validator
 func GetValidatorInstance() *validator.Validate {
 	validatorOnce.Do(func() {
@@ -47,6 +64,7 @@ func GetValidatorInstance() *validator.Validate {
 		// Register custom validators for S3 bucket and key formats
 		_ = validatorInstance.RegisterValidation("s3bucket", validateS3Bucket)
 		_ = validatorInstance.RegisterValidation("s3key", validateS3Key)
+		_ = validatorInstance.RegisterValidation("cachenamespace", validateCacheNamespace)
 	})
 	return validatorInstance
 }
@@ -70,6 +88,8 @@ func GetUserFriendlyValidationErrorMessage(err validator.FieldError) string {
 		return "Must be a valid S3 bucket name (3-63 lowercase alphanumeric characters, dots or hyphens)"
 	case "s3key":
 		return "Must be a valid S3 key (1-1024 characters, must not start with '/')"
+	case "cachenamespace":
+		return "Must be a valid cache namespace (1-128 characters, alphanumeric, '_', '.', '-' and ':' separators)"
 	default:
 		return "Invalid value"
 	}
