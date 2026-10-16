@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -9,6 +10,9 @@ import (
 	"text/template"
 	"time"
 
+	pdfText "github.com/ledongthuc/pdf"
+	pdfcpuAPI "github.com/pdfcpu/pdfcpu/pkg/api"
+	pdfcpuModel "github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,4 +80,73 @@ func SavePDF(t *testing.T, args SavePDFArgs) SavePDFResult {
 	t.Logf("PDF saved at: %s", path)
 
 	return SavePDFResult{Path: path}
+}
+
+// InspectPDFArgs groups the parameters for semantic PDF inspection.
+type InspectPDFArgs struct {
+	Bytes []byte // raw PDF under inspection
+	// Pages is the expected page count; zero skips the page-count check.
+	Pages int
+	// Markers must each appear in the extracted text; nil skips the text check.
+	Markers []string
+}
+
+// InspectPDFResult carries the text extracted from the PDF for extra asserts.
+type InspectPDFResult struct {
+	Text string
+}
+
+// InspectPDF asserts the observable PDF contract: magic bytes, parseability
+// and page count via pdfcpu, plus marker presence in the extracted text via
+// a pure-Go text extractor. It never compares golden bytes: Chromium embeds
+// fresh timestamps and document IDs on every render.
+func InspectPDF(t *testing.T, args InspectPDFArgs) InspectPDFResult {
+	t.Helper()
+	require.NotEmpty(t, args.Bytes, "PDF bytes must not be empty")
+	require.True(t, bytes.HasPrefix(args.Bytes, []byte("%PDF-")),
+		"PDF must start with the magic bytes %PDF-")
+
+	pageCount, err := pdfcpuAPI.PageCount(
+		bytes.NewReader(args.Bytes),
+		pdfcpuModel.NewDefaultConfiguration(),
+	)
+	require.NoError(t, err, "PDF must be parseable by pdfcpu")
+
+	if args.Pages > 0 {
+		require.Equal(t, args.Pages, pageCount,
+			"PDF page count must match the number of rendered items")
+	}
+
+	var text string
+	if len(args.Markers) > 0 {
+		reader, err := pdfText.NewReader(bytes.NewReader(args.Bytes), int64(len(args.Bytes)))
+		require.NoError(t, err, "text extractor must open the PDF")
+
+		// Fonts are resolved per page on purpose: merged documents can reuse
+		// a font name for distinct font objects, so a cache shared across
+		// pages decodes later pages with the first page encoding.
+		var texts strings.Builder
+		for i := 1; i <= reader.NumPage(); i++ {
+			page := reader.Page(i)
+
+			fonts := make(map[string]*pdfText.Font, len(page.Fonts()))
+			for _, name := range page.Fonts() {
+				font := page.Font(name)
+				fonts[name] = &font
+			}
+
+			pageText, err := page.GetPlainText(fonts)
+			require.NoError(t, err, "text extraction must succeed")
+			texts.WriteString(pageText)
+		}
+		text = texts.String()
+
+		for _, marker := range args.Markers {
+			require.NotEmpty(t, marker, "markers must not be empty")
+			require.Contains(t, text, marker,
+				"extracted text must contain the marker")
+		}
+	}
+
+	return InspectPDFResult{Text: text}
 }
