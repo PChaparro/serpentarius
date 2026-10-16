@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// SmokeSuite is the Phase 0 gate: it proves the harness itself works (server +
+// SmokeSuite is the harness gate: it proves the harness itself works (server +
 // Redis + MinIO respond) and leaves a dummy PDF in testdata/output/.
 type SmokeSuite struct {
 	suite.Suite
@@ -40,7 +40,7 @@ func (s *SmokeSuite) TestServerResponds() {
 
 	assertUnauthorized(t, RawRequestArgs{
 		Method: http.MethodPost,
-		Path:   "/api/v1/pdf",
+		Path:   pdfEndpointPath,
 		Body:   map[string]any{},
 		Client: s.anonClient,
 	})

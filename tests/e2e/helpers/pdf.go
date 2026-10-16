@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// smokeHTMLTemplate is the Phase 0 inline fixture: a single line carrying the
-// per-run {{.Marker}} so later phases can assert marker propagation. Rich
-// fixtures (invoice/cover/terms) arrive in Phase 4 under testdata/*.html.tmpl.
+// smokeHTMLTemplate is the inline fixture: a single line carrying the
+// per-run {{.Marker}} so suites can assert marker propagation. Rich
+// fixtures (invoice/cover/terms) live under testdata/*.html.tmpl.
 const smokeHTMLTemplate = `<html><body><h1>Hello-{{.Marker}}</h1></body></html>`
 
 // TemplateArgs groups the parameters for rendering an HTML template.
@@ -73,7 +73,7 @@ func SavePDF(t *testing.T, args SavePDFArgs) SavePDFResult {
 	path := filepath.Join(outputDir, fileName)
 
 	require.NoError(t, os.WriteFile(path, args.Bytes, 0o644), "writing PDF file")
-	t.Logf("PDF guardado en: %s", path)
+	t.Logf("PDF saved at: %s", path)
 
 	return SavePDFResult{Path: path}
 }

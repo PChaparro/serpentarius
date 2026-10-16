@@ -217,8 +217,8 @@ func setEnvVars(args envVarsArgs) {
 	// Auth
 	os.Setenv("AUTH_SECRET", "test-auth-secret")
 
-	// Chromium is the real host binary (never containerized); stubs replace
-	// the generator in Phases 0-3, real renders use it from Phase 4 on.
+	// Chromium is the real host binary (never containerized); stubbed suites
+	// replace the generator, while real-render suites use this binary directly.
 	if os.Getenv("CHROMIUM_BINARY_PATH") == "" {
 		os.Setenv("CHROMIUM_BINARY_PATH", "/usr/bin/chromium")
 	}

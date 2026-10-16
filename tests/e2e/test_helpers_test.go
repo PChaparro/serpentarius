@@ -18,6 +18,9 @@ import (
 // `*testing.T` is always the leading parameter. Pure fmt.Sprintf path builders
 // are the one deliberate exception and keep positional args.
 
+// pdfEndpointPath is the only route under test in this package.
+const pdfEndpointPath = "/api/v1/pdf"
+
 // ---------------------------------------------------------------------------
 // Named response types (match the API wire format)
 // ---------------------------------------------------------------------------
@@ -42,14 +45,18 @@ type apiErrorResponse struct {
 // Raw request helpers
 // ---------------------------------------------------------------------------
 
-// RawRequestArgs groups the parameters for a raw HTTP request. Token is the
-// bearer value without the "Bearer " prefix; "" sends no Authorization header.
+// RawRequestArgs groups the parameters for a raw HTTP request. AuthHeader is
+// the exact Authorization header value to send; nil sends no header at all.
+// Callers compose the bearer shape explicitly ("Bearer " + token) when they
+// need it. RawBody, when set, is sent verbatim as application/json and takes
+// precedence over Body.
 type RawRequestArgs struct {
-	Method string
-	Path   string
-	Body   any // nil → no body sent
-	Token  string
-	Client *http.Client
+	Method     string
+	Path       string
+	Body       any // nil → no body sent, unless RawBody is set
+	RawBody    []byte
+	AuthHeader *string
+	Client     *http.Client
 }
 
 // RawJSONResult carries the status code and the decoded generic payload.
@@ -85,12 +92,14 @@ func getRawJSONResponse(t *testing.T, args RawRequestArgs) RawJSONResult {
 		require.FailNow(t, "unsupported HTTP method", args.Method)
 	}
 
-	if args.Body != nil {
+	if args.RawBody != nil {
+		rb.WithRawBody("application/json", args.RawBody)
+	} else if args.Body != nil {
 		rb.WithJSON(args.Body)
 	}
 
-	if args.Token != "" {
-		rb.WithHeader(helpers.HeaderArgs{Key: "Authorization", Value: "Bearer " + args.Token})
+	if args.AuthHeader != nil {
+		rb.WithHeader(helpers.HeaderArgs{Key: "Authorization", Value: *args.AuthHeader})
 	}
 
 	resp, err := rb.Do()
