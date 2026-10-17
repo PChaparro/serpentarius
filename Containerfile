@@ -35,6 +35,9 @@ USER serpentarius
 ## Copy files
 COPY --from=builder /source/dist/serpentarius.bin .
 
+## Server
+ENV PORT=3001
+EXPOSE ${PORT}
+
 ## Run
-EXPOSE 3000
 ENTRYPOINT ["/opt/serpentarius/serpentarius.bin"]
