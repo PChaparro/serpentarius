@@ -20,6 +20,9 @@ const (
 type EnvironmentSpec struct {
 	Environment string `split_words:"true" default:"development"` // App environment (development/production)
 
+	// HTTP server
+	Port int `split_words:"true" default:"3001"` // HTTP server port
+
 	// Binaries
 	ChromiumBinaryPath string `split_words:"true" default:"/usr/bin/chromium-browser"` // Path to Chromium binary
 
