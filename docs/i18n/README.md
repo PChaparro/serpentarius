@@ -70,7 +70,7 @@ docker build -f Containerfile -t serpentarius .
 Y ejecuta el contenedor:
 
 ```bash
-docker run -p 3000:3000 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
+docker run -p 3001:3001 -e AWS_S3_ENDPOINT_URL=http://localhost:9000 \
   -e AWS_ACCESS_KEY_ID=value \
   -e AWS_SECRET_ACCESS_KEY=value \
   -e AWS_REGION=us-east-1 \
