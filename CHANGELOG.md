@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v1.1.0](https://github.com/PChaparro/serpentarius/compare/2284e6a92c2f6a21f140eb0cbdf12fe85af8a57c..v1.1.0) - 2026-10-17
+#### Features
+- customize port via env var (#21) - ([f36ac18](https://github.com/PChaparro/serpentarius/commit/f36ac187e6320758c8226e107a5fced0b4c6b69e)) - Pedro Chaparro
+#### Build system
+- (**containerfile**) unpin chromium and remove upx (#20) - ([2284e6a](https://github.com/PChaparro/serpentarius/commit/2284e6a92c2f6a21f140eb0cbdf12fe85af8a57c)) - Pedro Chaparro
+
+- - -
+
 ## [v1.0.0](https://github.com/PChaparro/serpentarius/compare/860427f70ae1b28efbdddfdd33bf9fa9f0faaca0..v1.0.0) - 2026-10-16
 #### Features
 - ![BREAKING](https://img.shields.io/badge/BREAKING-red) (**pdf**) redesign PDF API contract, add unit/e2e coverage and CI (#18) - ([137b2db](https://github.com/PChaparro/serpentarius/commit/137b2db47266ca763938e7d7eab8cc35bfd624f1)) - Pedro Chaparro
