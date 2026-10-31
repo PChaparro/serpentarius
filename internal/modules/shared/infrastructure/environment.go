@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -42,6 +43,9 @@ type EnvironmentSpec struct {
 	RedisPort     string `split_words:"true" default:"6379"`  // Redis port
 	RedisPassword string `required:"true" split_words:"true"` // Redis password
 	RedisDB       int    `split_words:"true" default:"0"`     // Redis DB number
+	// RedisIdleTimeoutMinutes closes the Redis client after this many minutes
+	// without activity. 0 disables the idle close; negative values are invalid.
+	RedisIdleTimeoutMinutes int `split_words:"true" default:"0"`
 
 	// Authentication
 	AuthSecret string `required:"true" split_words:"true"` // Secret for JWT auth
@@ -107,9 +111,25 @@ func findEnvFile() string {
 func initializeEnvironmentInstance() {
 	environment = &EnvironmentSpec{}
 
-	err := envconfig.Process("", environment)
-
-	if err != nil {
+	if err := applyEnvironmentConfig(environment); err != nil {
 		log.Fatal("[ERROR] ", err.Error())
 	}
+}
+
+// applyEnvironmentConfig loads environment variables into env and validates the resulting configuration.
+func applyEnvironmentConfig(env *EnvironmentSpec) error {
+	if err := envconfig.Process("", env); err != nil {
+		return err
+	}
+
+	return validateEnvironment(env)
+}
+
+// validateEnvironment rejects settings that would produce invalid runtime behavior.
+func validateEnvironment(env *EnvironmentSpec) error {
+	if env.RedisIdleTimeoutMinutes < 0 {
+		return fmt.Errorf("REDIS_IDLE_TIMEOUT_MINUTES must be zero or greater")
+	}
+
+	return nil
 }
