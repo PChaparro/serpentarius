@@ -101,6 +101,7 @@ For any installation method, configure these variables in a `.env` file or in th
 | `REDIS_PORT`                    | Redis server port                                          | `6379`                                                                               |
 | `REDIS_PASSWORD`                | Redis server password                                      | `dragonfly`                                                                          |
 | `REDIS_DB`                      | Redis database to use                                      | `0`                                                                                  |
+| `REDIS_IDLE_TIMEOUT_MINUTES`    | Minutes without Redis activity before closing the client and reconnecting automatically on the next operation (`0` disables it) | `0`                                                       |
 | `AUTH_SECRET`                   | Secret key for user authentication                         | No default value                                                                     |
 | `CHROMIUM_BINARY_PATH`          | Path to the Chromium binary                                | `/usr/bin/chromium`                                                                  |
 | `MAX_CHROMIUM_BROWSERS`         | Maximum number of concurrent Chromium browsers             | `1`                                                                                  |
@@ -109,6 +110,8 @@ For any installation method, configure these variables in a `.env` file or in th
 | `ENVIRONMENT`                   | Execution environment (development/production)             | `development`                                                                        |
 
 The values shown in the `Development Value` column are compatible with the `container-compose.local.yaml` file included in the project, which configures Dragonfly (Redis alternative) and MinIO (S3 alternative) for local development. If you use your own servers, adjust these variables accordingly.
+
+On platforms that sleep after a period without outbound traffic (for example Railway), set `REDIS_IDLE_TIMEOUT_MINUTES` to `1` or `2`: the Redis client's TCP keepalive would otherwise keep the service awake.
 
 To generate the authentication secret, you can use the following command:
 

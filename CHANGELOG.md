@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v1.2.0](https://github.com/PChaparro/serpentarius/compare/5e2b85c8956ebf4207275eb6ee11c08888e94f20..v1.2.0) - 2026-10-31
+#### Features
+- (**shared**) close idle Redis client (#23) - ([5e2b85c](https://github.com/PChaparro/serpentarius/commit/5e2b85c8956ebf4207275eb6ee11c08888e94f20)) - Pedro Chaparro
+
+- - -
+
 ## [v1.1.0](https://github.com/PChaparro/serpentarius/compare/2284e6a92c2f6a21f140eb0cbdf12fe85af8a57c..v1.1.0) - 2026-10-17
 #### Features
 - customize port via env var (#21) - ([f36ac18](https://github.com/PChaparro/serpentarius/commit/f36ac187e6320758c8226e107a5fced0b4c6b69e)) - Pedro Chaparro

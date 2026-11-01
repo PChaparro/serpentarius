@@ -101,6 +101,7 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 | `REDIS_PORT`                    | Puerto del servidor Redis                                              | `6379`                                                                                         |
 | `REDIS_PASSWORD`                | Contraseña del servidor Redis                                          | `dragonfly`                                                                                    |
 | `REDIS_DB`                      | Base de datos de Redis a utilizar                                      | `0`                                                                                            |
+| `REDIS_IDLE_TIMEOUT_MINUTES`    | Minutos sin actividad de Redis antes de cerrar el cliente y reconectarlo automáticamente cuando vuelva a usarse (`0` lo desactiva) | `0`                                                        |
 | `AUTH_SECRET`                   | Clave secreta para la autenticación de usuarios                        | No se establece valor por defecto                                                              |
 | `CHROMIUM_BINARY_PATH`          | Ruta al binario de Chromium                                            | `/usr/bin/chromium`                                                                            |
 | `MAX_CHROMIUM_BROWSERS`         | Número máximo de navegadores Chromium concurrentes                     | `1`                                                                                            |
@@ -109,6 +110,8 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 | `ENVIRONMENT`                   | Entorno de ejecución (development/production)                          | `development`                                                                                  |
 
 Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.local.yaml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.
+
+En plataformas que duermen tras un periodo sin tráfico saliente (por ejemplo Railway), configura `REDIS_IDLE_TIMEOUT_MINUTES` en `1` o `2`: de lo contrario, el keepalive TCP del cliente de Redis mantiene el servicio despierto.
 
 Para generar el secreto de autenticación, puedes usar el siguiente comando:
 
