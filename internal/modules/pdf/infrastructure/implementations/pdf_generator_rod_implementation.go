@@ -124,18 +124,34 @@ func SetPDFGeneratorForTesting(generator definitions.PDFGenerator) {
 
 // createBrowser launches a new browser instance and adds it to the pool
 func (p *PDFGeneratorRod) createBrowser() (*BrowserInfo, error) {
-	// Launch a new browser instance with optimized settings for headless PDF generation
-	launcherURL := launcher.New().
-		Bin(sharedInfrastructure.GetEnvironment().ChromiumBinaryPath). // Use the configured Chromium binary
-		Headless(true).                                                // Run in headless mode (no UI)
-		Leakless(true).                                                // Ensure process cleanup on unexpected termination
-		Set("disable-gpu", "1").                                       // Disable GPU acceleration
-		Set("disable-dev-shm-usage", "1").                             // Avoid using shared memory
-		Set("disable-extensions", "1").                                // Disable browser extensions
-		MustLaunch()
+	config := sharedInfrastructure.GetEnvironment()
+
+	// Launch a new browser instance with optimized settings for headless PDF generation.
+	// The sandbox stays enabled by default; disable it only on runtimes that block
+	// user namespaces (for example, managed container platforms with seccomp).
+	browserLauncher := launcher.New().
+		Bin(config.ChromiumBinaryPath).     // Use the configured Chromium binary
+		Headless(true).                     // Run in headless mode (no UI)
+		Leakless(true).                     // Ensure process cleanup on unexpected termination
+		NoSandbox(!config.ChromiumSandbox). // Disable the sandbox only when configured
+		Set("disable-gpu", "1").            // Disable GPU acceleration
+		Set("disable-dev-shm-usage", "1").  // Avoid using shared memory
+		Set("disable-extensions", "1")      // Disable browser extensions
+
+	launcherURL, err := browserLauncher.Launch()
+	if err != nil {
+		if config.ChromiumSandbox {
+			return nil, fmt.Errorf("failed to launch Chromium; if the runtime blocks user namespaces, set CHROMIUM_SANDBOX=false: %w", err)
+		}
+		return nil, fmt.Errorf("failed to launch Chromium: %w", err)
+	}
 
 	// Connect to the launched browser
-	browser := rod.New().ControlURL(launcherURL).MustConnect()
+	browser := rod.New().ControlURL(launcherURL)
+	if err := browser.Connect(); err != nil {
+		browserLauncher.Kill()
+		return nil, fmt.Errorf("failed to connect to Chromium: %w", err)
+	}
 
 	// Generate a unique ID for this browser
 	browserID := sharedInfrastructure.GenerateXID()
@@ -258,8 +274,12 @@ func (p *PDFGeneratorRod) findOrCreateAvailablePage() (*PageWithTimeout, error) 
 
 	// Release the lock while waiting
 	p.mutex.Unlock()
-	page := <-pageChannel
+	page, ok := <-pageChannel
 	p.mutex.Lock()
+
+	if !ok {
+		return nil, fmt.Errorf("page pool is shutting down")
+	}
 
 	return page, nil
 }
@@ -336,7 +356,7 @@ func (p *PDFGeneratorRod) closeIdlePage(page *PageWithTimeout) {
 // RequestPage retrieves an available page or creates a new one.
 // This method will block if all allowed resources are in use until a page becomes available.
 // The caller is responsible for returning the page to the pool after use.
-func (p *PDFGeneratorRod) RequestPage() *PageWithBrowser {
+func (p *PDFGeneratorRod) RequestPage() (*PageWithBrowser, error) {
 	p.pageWaitGroup.Add(1)
 
 	// Get a page (available or new)
@@ -344,20 +364,25 @@ func (p *PDFGeneratorRod) RequestPage() *PageWithBrowser {
 	if err != nil {
 		sharedUtilities.GetLogger().WithError(err).Error("Failed to get page")
 		p.pageWaitGroup.Done()
-		return nil
+		return nil, err
 	}
 
 	// Convert to the interface expected by existing code
 	return &PageWithBrowser{
 		Page:    page.Page,
 		Browser: page.Browser,
-	}
+	}, nil
 }
 
 // ReturnPage returns a page to the pool and starts its inactivity timer.
 // This should be called after a page is no longer needed to prevent resource leaks.
 func (p *PDFGeneratorRod) ReturnPage(pwb *PageWithBrowser) {
 	defer p.pageWaitGroup.Done()
+
+	if pwb == nil || pwb.Page == nil {
+		return
+	}
+
 	p.mutex.Lock()
 
 	// Find the corresponding PageWithTimeout
@@ -646,7 +671,15 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 			defer wg.Done()
 
 			// Get a page from the pool
-			pwb := p.RequestPage()
+			pwb, err := p.RequestPage()
+			if err != nil {
+				mu.Lock()
+				if processingErr == nil {
+					processingErr = err
+				}
+				mu.Unlock()
+				return
+			}
 			// Ensure page is returned to pool after use
 			defer p.ReturnPage(pwb)
 
@@ -654,7 +687,7 @@ func (p *PDFGeneratorRod) GeneratePDF(request *dto.PDFGenerationDTO) (io.Reader,
 			opts := p.buildPDFOptions(pdfItem.Config)
 
 			// Set the HTML content to the page
-			err := pwb.Page.SetDocumentContent(pdfItem.BodyHTML)
+			err = pwb.Page.SetDocumentContent(pdfItem.BodyHTML)
 			if err != nil {
 				sharedUtilities.GetLogger().
 					WithError(err).
