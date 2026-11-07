@@ -104,6 +104,7 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 | `REDIS_IDLE_TIMEOUT_MINUTES`    | Minutos sin actividad de Redis antes de cerrar el cliente y reconectarlo automáticamente cuando vuelva a usarse (`0` lo desactiva) | `0`                                                        |
 | `AUTH_SECRET`                   | Clave secreta para la autenticación de usuarios                        | No se establece valor por defecto                                                              |
 | `CHROMIUM_BINARY_PATH`          | Ruta al binario de Chromium                                            | `/usr/bin/chromium`                                                                            |
+| `CHROMIUM_SANDBOX`              | Habilita el sandbox de namespaces de Chromium (desactívalo solo si el runtime bloquea namespaces de usuario) | `true`                                                          |
 | `MAX_CHROMIUM_BROWSERS`         | Número máximo de navegadores Chromium concurrentes                     | `1`                                                                                            |
 | `MAX_CHROMIUM_TABS_PER_BROWSER` | Número máximo de pestañas por navegador Chromium                       | `4`                                                                                            |
 | `MAX_CHROMIUM_TAB_IDLE_SECONDS` | Segundos máximos que una página puede estar inactiva antes de cerrarse | `30`                                                                                           |
@@ -112,6 +113,8 @@ Para cualquier método de instalación, configura estas variables en un archivo 
 Los valores mostrados en la columna `Valor para desarrollo` son compatibles con el archivo `container-compose.local.yaml` incluido en el proyecto, que configura Dragonfly (alternativa a Redis) y MinIO (alternativa a S3) para desarrollo local. Si usas tus propios servidores, ajusta estas variables según corresponda.
 
 En plataformas que duermen tras un periodo sin tráfico saliente (por ejemplo Railway), configura `REDIS_IDLE_TIMEOUT_MINUTES` en `1` o `2`: de lo contrario, el keepalive TCP del cliente de Redis mantiene el servicio despierto.
+
+El sandbox de namespaces de Chromium está habilitado por defecto. Algunas plataformas de contenedores gestionadas bloquean las syscalls `clone`/`unshare` necesarias para crear namespaces de usuario, por lo que Chromium aborta al iniciar; en esas plataformas configura `CHROMIUM_SANDBOX=false`. El contenedor pasa a ser el límite de aislamiento, así que mantén el sandbox habilitado siempre que el runtime permita namespaces de usuario.
 
 Para generar el secreto de autenticación, puedes usar el siguiente comando:
 

@@ -104,6 +104,7 @@ For any installation method, configure these variables in a `.env` file or in th
 | `REDIS_IDLE_TIMEOUT_MINUTES`    | Minutes without Redis activity before closing the client and reconnecting automatically on the next operation (`0` disables it) | `0`                                                       |
 | `AUTH_SECRET`                   | Secret key for user authentication                         | No default value                                                                     |
 | `CHROMIUM_BINARY_PATH`          | Path to the Chromium binary                                | `/usr/bin/chromium`                                                                  |
+| `CHROMIUM_SANDBOX`              | Enable Chromium's namespace sandbox (disable only if the runtime blocks user namespaces) | `true`                                                          |
 | `MAX_CHROMIUM_BROWSERS`         | Maximum number of concurrent Chromium browsers             | `1`                                                                                  |
 | `MAX_CHROMIUM_TABS_PER_BROWSER` | Maximum number of tabs per Chromium browser                | `4`                                                                                  |
 | `MAX_CHROMIUM_TAB_IDLE_SECONDS` | Maximum seconds a page can remain idle before being closed | `30`                                                                                 |
@@ -112,6 +113,8 @@ For any installation method, configure these variables in a `.env` file or in th
 The values shown in the `Development Value` column are compatible with the `container-compose.local.yaml` file included in the project, which configures Dragonfly (Redis alternative) and MinIO (S3 alternative) for local development. If you use your own servers, adjust these variables accordingly.
 
 On platforms that sleep after a period without outbound traffic (for example Railway), set `REDIS_IDLE_TIMEOUT_MINUTES` to `1` or `2`: the Redis client's TCP keepalive would otherwise keep the service awake.
+
+Chromium's namespace sandbox is enabled by default. Some managed container platforms block the `clone`/`unshare` syscalls required to create user namespaces, so Chromium aborts on startup; on those platforms set `CHROMIUM_SANDBOX=false`. The container then becomes the isolation boundary, so keep the sandbox enabled wherever the runtime allows user namespaces.
 
 To generate the authentication secret, you can use the following command:
 
