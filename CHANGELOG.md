@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## [v1.3.0](https://github.com/PChaparro/serpentarius/compare/b72ebc395afb1ef9f7c8b5b325caf0c895fcb453..v1.3.0) - 2026-11-07
+#### Features
+- (**pdf**) make Chromium sandbox configurable and handle launch errors (#25) - ([b72ebc3](https://github.com/PChaparro/serpentarius/commit/b72ebc395afb1ef9f7c8b5b325caf0c895fcb453)) - Pedro Chaparro
+
+- - -
+
 ## [v1.2.0](https://github.com/PChaparro/serpentarius/compare/5e2b85c8956ebf4207275eb6ee11c08888e94f20..v1.2.0) - 2026-10-31
 #### Features
 - (**shared**) close idle Redis client (#23) - ([5e2b85c](https://github.com/PChaparro/serpentarius/commit/5e2b85c8956ebf4207275eb6ee11c08888e94f20)) - Pedro Chaparro
