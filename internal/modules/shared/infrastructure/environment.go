@@ -24,8 +24,11 @@ type EnvironmentSpec struct {
 	// HTTP server
 	Port int `split_words:"true" default:"3001"` // HTTP server port
 
-	// Binaries
+	// Chromium
 	ChromiumBinaryPath string `split_words:"true" default:"/usr/bin/chromium-browser"` // Path to Chromium binary
+	// ChromiumSandbox enables Chromium's namespace sandbox. Keep it enabled unless the
+	// runtime blocks user namespaces (some managed container platforms do).
+	ChromiumSandbox bool `split_words:"true" default:"true"` // Enable Chromium sandbox
 
 	// Concurrency
 	MaxChromiumBrowsers       int `split_words:"true" default:"1"`  // Max concurrent Chromium browsers
